@@ -1,0 +1,19 @@
+{
+  "name": "chatio-backend",
+  "version": "1.0.0",
+  "description": "Backend for Chatio - An AI-powered assistant for hackers and security professionals",
+  "author": {
+    "name": "Amr Elsagaei",
+    "email": "info@amralsagaei.com",
+    "url": "https://amralsagaei.com"
+  },
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "5.5.4",
+    "@types/node": "^20.0.0"
+  }
+}
