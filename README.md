@@ -49,20 +49,6 @@ With support for multiple AI providers and specialized security-focused capabili
 </details>
 
 <details>
-<summary><b>Specialized Security Testing Assistance</b></summary>
-<br>
-
-- **Vulnerability Analysis:** Deep dive into OWASP Top 10, zero-days, and custom vulnerability research
-- **Secure Code Review:** Multi-language source code security analysis with fix suggestions
-- **Network Penetration Testing:** Complete methodologies from reconnaissance to post-exploitation
-- **Web Application Security:** SQL injection, XSS, authentication bypass techniques
-- **Mobile & API Security:** iOS/Android testing, REST/GraphQL API security assessment
-- **Cloud Security:** AWS, Azure, GCP misconfigurations and attack vectors
-- **Social Engineering:** Phishing campaigns, pretexting, and human psychology attacks
-- **Binary Exploitation:** Buffer overflows, ROP chains, and memory corruption techniques
-</details>
-
-<details>
 <summary><b>Advanced File & Image Analysis</b></summary>
 <br>
 
@@ -102,7 +88,7 @@ With support for multiple AI providers and specialized security-focused capabili
 <summary><b>Privacy & Security</b></summary>
 <br>
 
-- **Local Storage:** All data stored locally in your browser
+- **Local Storage:** All data stored locally in your local storage
 - **API Key Security:** Encrypted storage of sensitive credentials
 - **No Data Logging:** Conversations remain private and are not transmitted to third parties
 - **Offline Capability:** Full functionality with local LLM providers
@@ -208,23 +194,6 @@ With support for multiple AI providers and specialized security-focused capabili
    - Generate custom payloads and test cases
 
 ## Security Testing Workflows
-
-### Common Attack Scenarios
-
-<div align="left">
-  
-| Attack Vector | Chatio Capabilities |
-|---------------|-------------------|
-| **Web Application Testing** | OWASP Top 10 analysis, custom payload generation, bypass techniques |
-| **Network Penetration** | Scanning methodologies, service enumeration, privilege escalation |
-| **API Security Assessment** | REST/GraphQL testing, authentication flaws, rate limiting bypass |
-| **Mobile Application Testing** | Static/dynamic analysis, runtime manipulation, platform-specific attacks |
-| **Cloud Security** | Configuration review, IAM analysis, container security assessment |
-| **Social Engineering** | Campaign design, psychological profiling, pretext development |
-| **Binary Exploitation** | Reverse engineering, memory corruption, exploit development |
-| **Wireless Security** | Protocol analysis, encryption attacks, infrastructure testing |
-
-</div>
 
 ### Professional Testing Methodologies
 
