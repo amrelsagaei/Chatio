@@ -1,10 +1,4 @@
 import { Caido } from "@caido/sdk-frontend";
+import { type API, type BackendEvents } from "backend";
 
-// Define simplified API that matches the backend
-interface API {
-  healthCheck: () => Promise<{ status: string }>;
-  getProviders: () => Promise<string[]>;
-  getProviderModels: (provider: string) => Promise<string[]>;
-}
-
-export type FrontendSDK = Caido<API, {}>;
+export type FrontendSDK = Caido<API, BackendEvents>;

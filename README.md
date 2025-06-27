@@ -20,6 +20,7 @@
 - [AI Provider Setup](#ai-provider-setup)
 - [Usage](#usage)
 - [Security Testing Workflows](#security-testing-workflows)
+- [Quick Actions (Beta)](#quick-actions-beta)
 - [Advanced Features](#advanced-features)
 - [Troubleshooting](#troubleshooting)
 - [Documentation](#documentation)
@@ -49,6 +50,20 @@ With support for multiple AI providers and specialized security-focused capabili
 </details>
 
 <details>
+<summary><b>Specialized Security Testing Assistance</b></summary>
+<br>
+
+- **Vulnerability Analysis:** Deep dive into OWASP Top 10, zero-days, and custom vulnerability research
+- **Secure Code Review:** Multi-language source code security analysis with fix suggestions
+- **Network Penetration Testing:** Complete methodologies from reconnaissance to post-exploitation
+- **Web Application Security:** SQL injection, XSS, authentication bypass techniques
+- **Mobile & API Security:** iOS/Android testing, REST/GraphQL API security assessment
+- **Cloud Security:** AWS, Azure, GCP misconfigurations and attack vectors
+- **Social Engineering:** Phishing campaigns, pretexting, and human psychology attacks
+- **Binary Exploitation:** Buffer overflows, ROP chains, and memory corruption techniques
+</details>
+
+<details>
 <summary><b>Advanced File & Image Analysis</b></summary>
 <br>
 
@@ -73,6 +88,20 @@ With support for multiple AI providers and specialized security-focused capabili
 </details>
 
 <details>
+<summary><b>Quick Actions (Beta)</b></summary>
+<br>
+
+- **Instant AI-Powered Automation:** Press `⌘ Ctrl+Space` anywhere in Caido for intelligent command execution
+- **Request Manipulation:** Modify HTTP methods, headers, and bodies with natural language
+- **Scope Management:** Create testing scopes with complex patterns and exclusions
+- **Filter Creation:** Generate HTTPQL filters for targeted request analysis  
+- **File Operations:** Create and manage hosted files for fuzzing and testing
+- **Search Integration:** Quick access to HTTP history search with intelligent queries
+- **Context-Aware:** Automatically detects current tab and request context
+- **Multi-Provider Support:** Works with all configured AI providers for maximum flexibility
+</details>
+
+<details>
 <summary><b>Professional Security Features</b></summary>
 <br>
 
@@ -88,7 +117,7 @@ With support for multiple AI providers and specialized security-focused capabili
 <summary><b>Privacy & Security</b></summary>
 <br>
 
-- **Local Storage:** All data stored locally in your local storage
+- **Local Storage:** All data stored locally in your browser
 - **API Key Security:** Encrypted storage of sensitive credentials
 - **No Data Logging:** Conversations remain private and are not transmitted to third parties
 - **Offline Capability:** Full functionality with local LLM providers
@@ -193,7 +222,92 @@ With support for multiple AI providers and specialized security-focused capabili
    - Integrate with Caido's intercept and modification features
    - Generate custom payloads and test cases
 
+## Quick Actions (Beta)
+
+**⚡ Intelligent automation at your fingertips!** Press `Ctrl+Space` anywhere in Caido to access AI-powered Quick Actions that streamline your testing workflow.
+
+### How It Works
+
+1. **Activate:** Press `Ctrl+Space` in any Caido tab
+2. **Describe:** Use natural language to describe what you want to do
+3. **Execute:** AI understands context and performs the action instantly
+
+### Core Capabilities
+
+<div align="left">
+
+| Category | Examples | What It Does |
+|----------|----------|--------------|
+| **Request Editing** | `"change method to POST"` | Modifies HTTP methods, headers, body content |
+| **Scope Creation** | `"create scope for testfire.net domain"` | Generates testing scopes with allowlists/denylists |
+| **Filter Management** | `"create filter for API endpoints"` | Creates HTTPQL filters for request analysis |
+| **File Operations** | `"create wordlist with common usernames"` | Generates hosted files for fuzzing/testing |
+| **Search & Analysis** | `"search for login endpoints"` | Searches HTTP history with intelligent queries |
+
+</div>
+
+### Quick Actions Examples
+
+**🎯 Scope Management:**
+```
+"create scope for vulnbank.com but exclude admin.vulnbank.com"
+"create scope for hackme[1-9].com pattern"  
+"create scope for *.pentest-lab.org wildcard"
+```
+
+**🔧 Request Manipulation:**
+```
+"replace GET with POST and add JSON header"
+"change request body to include XSS payload"
+"add authorization header with Bearer token"
+```
+
+**🔍 Smart Filtering:**
+```
+"create filter for API endpoints"
+"filter requests with 4xx status codes"
+"create filter to dismiss all CSS and JS files"
+```
+
+**📁 File Creation:**
+```
+"create wordlist file with common passwords"
+"generate payload file with SQL injection vectors"
+"create subdomain enumeration wordlist"
+```
+
+### Getting Started with Quick Actions
+
+1. **First Time:** Open any request in Caido (Replay, Intercept, HTTP History)
+2. **Activate:** Press `Ctrl+Space` to open Quick Actions
+3. **Try Examples:** Start with simple commands like `"change method to POST"`
+4. **Get Creative:** Use natural language - AI understands context and intent
+
+### Beta Notice
+
+Quick Actions is in active development. Current limitations:
+- Scope update/delete functions are temporarily disabled
+- Best performance with GPT-4o, Claude 3.5 Sonnet
+- Some complex commands may require refinement
+
 ## Security Testing Workflows
+
+### Common Attack Scenarios
+
+<div align="left">
+  
+| Attack Vector | Chatio Capabilities |
+|---------------|-------------------|
+| **Web Application Testing** | OWASP Top 10 analysis, custom payload generation, bypass techniques |
+| **Network Penetration** | Scanning methodologies, service enumeration, privilege escalation |
+| **API Security Assessment** | REST/GraphQL testing, authentication flaws, rate limiting bypass |
+| **Mobile Application Testing** | Static/dynamic analysis, runtime manipulation, platform-specific attacks |
+| **Cloud Security** | Configuration review, IAM analysis, container security assessment |
+| **Social Engineering** | Campaign design, psychological profiling, pretext development |
+| **Binary Exploitation** | Reverse engineering, memory corruption, exploit development |
+| **Wireless Security** | Protocol analysis, encryption attacks, infrastructure testing |
+
+</div>
 
 ### Professional Testing Methodologies
 

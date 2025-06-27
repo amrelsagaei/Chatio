@@ -1,8 +1,6 @@
 <template>
   <div class="chatio-app" :data-mode="currentMode">
-    <!-- Clean Header - JWT Analyzer Style -->
     <header class="chatio-header">
-      <!-- Navigation Tabs -->
       <nav class="chatio-tabs">
         <button
           v-for="tab in tabs"
@@ -18,7 +16,6 @@
         </button>
       </nav>
 
-      <!-- Right Actions -->
       <div class="flex items-center gap-2">
         <button
           class="chatio-theme-toggle"
@@ -41,12 +38,14 @@
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="chatio-content">
+      <div v-if="$slots.debug" class="chatio-debug-container">
+        <slot name="debug" />
+      </div>
+      
       <slot :activeTab="activeTab" />
     </main>
 
-    <!-- Status Bar -->
     <div class="chatio-status-bar">
       <div class="chatio-status-indicator">
         <div :class="[
@@ -56,6 +55,7 @@
           'bg-red-500'
         ]"></div>
         <span>Chatio</span>
+        <span v-if="currentProject">• Project: {{ currentProject.name }}</span>
         <span v-if="messageCount">• {{ messageCount }} messages</span>
         <span v-if="activeProvider">• {{ activeProvider }}</span>
       </div>
@@ -70,7 +70,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 
-// Props
 interface Props {
   defaultTab?: string;
   connectionStatus?: {
@@ -80,6 +79,10 @@ interface Props {
   messageCount?: number | null;
   lastSync?: Date | null;
   activeProvider?: string | null;
+  currentProject?: {
+    id: string | null;
+    name: string;
+  } | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -87,20 +90,18 @@ const props = withDefaults(defineProps<Props>(), {
   connectionStatus: null,
   messageCount: null,
   lastSync: null,
-  activeProvider: null
+  activeProvider: null,
+  currentProject: null
 });
 
-// Emits
 const emit = defineEmits<{
   tabChanged: [tabId: string];
   themeChanged: [mode: 'light' | 'dark'];
 }>();
 
-// State
 const activeTab = ref(props.defaultTab);
-const currentMode = ref<'light' | 'dark'>('dark'); // Default to dark
+const currentMode = ref<'light' | 'dark'>('dark');
 
-// Clean Navigation tabs
 const tabs = [
   {
     id: 'chat',
@@ -119,7 +120,6 @@ const tabs = [
   }
 ];
 
-// Methods
 const setActiveTab = (tabId: string) => {
   activeTab.value = tabId;
   emit('tabChanged', tabId);
@@ -128,32 +128,23 @@ const setActiveTab = (tabId: string) => {
 const toggleTheme = () => {
   currentMode.value = currentMode.value === 'dark' ? 'light' : 'dark';
   emit('themeChanged', currentMode.value);
-  localStorage.setItem('chatio-theme', currentMode.value);
 };
 
 const formatTime = (date: Date) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-// Load saved theme
 const loadTheme = () => {
-  const saved = localStorage.getItem('chatio-theme');
-  if (saved === 'light' || saved === 'dark') {
-    currentMode.value = saved;
-  }
 };
 
-// Lifecycle
 onMounted(() => {
   loadTheme();
 });
 
-// Expose activeTab for parent components
 defineExpose({
   activeTab
 });
 </script>
 
 <style scoped>
-/* Component styles are handled by design-system.css */
 </style> 

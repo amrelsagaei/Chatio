@@ -317,31 +317,31 @@
                   <div class="space-y-1">
                     <div class="flex items-center justify-between bg-primary/5 p-2 rounded">
                       <code class="text-xs">ollama pull llama3.2</code>
-                      <button @click="copyToClipboard('ollama pull llama3.2')" class="ml-2 text-xs text-amber-600 transition-colors">
+                      <button @click="copyLinkToClipboard('ollama pull llama3.2')" class="ml-2 text-xs text-amber-600 transition-colors">
                         <i class="fas fa-copy"></i>
                       </button>
                     </div>
                     <div class="flex items-center justify-between bg-primary/5 p-2 rounded">
                       <code class="text-xs">ollama pull mistral</code>
-                      <button @click="copyToClipboard('ollama pull mistral')" class="ml-2 text-xs text-amber-600 transition-colors">
+                      <button @click="copyLinkToClipboard('ollama pull mistral')" class="ml-2 text-xs text-amber-600 transition-colors">
                         <i class="fas fa-copy"></i>
                       </button>
                     </div>
                     <div class="flex items-center justify-between bg-primary/5 p-2 rounded">
                       <code class="text-xs">ollama pull codellama</code>
-                      <button @click="copyToClipboard('ollama pull codellama')" class="ml-2 text-xs text-amber-600 transition-colors">
+                      <button @click="copyLinkToClipboard('ollama pull codellama')" class="ml-2 text-xs text-amber-600 transition-colors">
                         <i class="fas fa-copy"></i>
                       </button>
                     </div>
                     <div class="flex items-center justify-between bg-primary/5 p-2 rounded">
                       <code class="text-xs">ollama pull llava</code>
-                      <button @click="copyToClipboard('ollama pull llava')" class="ml-2 text-xs text-amber-600 transition-colors">
+                      <button @click="copyLinkToClipboard('ollama pull llava')" class="ml-2 text-xs text-amber-600 transition-colors">
                         <i class="fas fa-copy"></i>
                       </button>
                     </div>
                     <div class="flex items-center justify-between bg-primary/5 p-2 rounded">
                       <code class="text-xs">ollama pull qwen2.5-coder</code>
-                      <button @click="copyToClipboard('ollama pull qwen2.5-coder')" class="ml-2 text-xs text-amber-600 transition-colors">
+                      <button @click="copyLinkToClipboard('ollama pull qwen2.5-coder')" class="ml-2 text-xs text-amber-600 transition-colors">
                         <i class="fas fa-copy"></i>
                       </button>
                     </div>
@@ -379,6 +379,287 @@
                   <li class="flex items-start"><i class="fas fa-check-circle mr-3 text-amber-700 mt-0.5"></i>Use different keys for different applications</li>
                   <li class="flex items-start"><i class="fas fa-check-circle mr-3 text-amber-700 mt-0.5"></i>Enable billing alerts to avoid surprises</li>
                   <li class="flex items-start"><i class="fas fa-check-circle mr-3 text-amber-700 mt-0.5"></i>Review API access logs regularly</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions Guide - 100% width with structured layout -->
+        <div class="chatio-settings-section" style="grid-column: 1 / -1;">
+          <div class="chatio-settings-header">
+            <h3 class="chatio-settings-title"><i class="fas fa-bolt mr-2"></i>Quick Actions Guide</h3>
+            <p class="chatio-settings-desc">Master the powerful Quick Actions feature for lightning-fast security testing tasks</p>
+          </div>
+          <div class="chatio-settings-body">
+            <!-- Quick Actions Overview and Shortcut -->
+            <div class="chatio-welcome-card mb-6 relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-bl-3xl"></div>
+              <div class="flex items-center mb-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                  <i class="fas fa-bolt text-white text-xl"></i>
+                </div>
+                <div>
+                  <h4 class="font-semibold text-xl text-primary">What are Quick Actions?</h4>
+                  <p class="text-sm text-secondary mt-1">AI-powered automation for instant security testing tasks</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                  <div class="bg-primary/5 p-4 rounded-lg border border-primary/20">
+                    <h5 class="font-medium text-primary mb-3 flex items-center">
+                      <i class="fas fa-keyboard mr-2"></i>
+                      Global Shortcut
+                    </h5>
+                                         <div class="flex items-center justify-center bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-lg border border-primary/30">
+                       <div class="flex items-center gap-2">
+                         <kbd class="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-sm text-sm font-mono font-medium text-gray-900 dark:text-gray-100">⌘ Ctrl</kbd>
+                         <span class="text-primary font-bold">+</span>
+                         <kbd class="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-sm text-sm font-mono font-medium text-gray-900 dark:text-gray-100">Space</kbd>
+                       </div>
+                     </div>
+                    <p class="text-xs text-secondary mt-2 text-center">Press anywhere in Caido to open Quick Actions</p>
+                  </div>
+                </div>
+                <div class="space-y-4">
+                  <div class="bg-primary/5 p-4 rounded-lg border border-primary/20">
+                    <h5 class="font-medium text-primary mb-3 flex items-center">
+                      <i class="fas fa-magic mr-2"></i>
+                      How it Works
+                    </h5>
+                    <ul class="space-y-2 text-sm text-secondary">
+                      <li class="flex items-start">
+                        <i class="fas fa-chevron-right text-primary mt-1 mr-2"></i>
+                        <span>Type your request in natural language</span>
+                      </li>
+                      <li class="flex items-start">
+                        <i class="fas fa-chevron-right text-primary mt-1 mr-2"></i>
+                        <span>AI understands your intent and parameters</span>
+                      </li>
+                      <li class="flex items-start">
+                        <i class="fas fa-chevron-right text-primary mt-1 mr-2"></i>
+                        <span>Action executes automatically in Caido</span>
+                      </li>
+                      <li class="flex items-start">
+                        <i class="fas fa-chevron-right text-primary mt-1 mr-2"></i>
+                        <span>Instant feedback and results</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                             </div>
+             </div>
+
+             <!-- Beta Notice -->
+             <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
+               <div class="flex items-center">
+                 <div class="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center mr-3">
+                   <i class="fas fa-flask text-white text-xs"></i>
+                 </div>
+                 <div>
+                   <h5 class="font-medium text-amber-800">Beta Feature</h5>
+                   <p class="text-sm text-amber-700 mt-1">Quick Actions popup is currently in beta version. You may encounter some errors during usage, which is normal for this phase.</p>
+                 </div>
+               </div>
+             </div>
+
+             <!-- Quick Actions Categories in 2x2 grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <!-- Editor Actions -->
+               <div class="chatio-welcome-card">
+                 <div class="flex items-center mb-4">
+                   <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                     <i class="fas fa-edit text-white"></i>
+                   </div>
+                   <h4 class="font-semibold text-lg text-primary">Editor Actions</h4>
+                 </div>
+                                 <div class="space-y-3 text-sm">
+                   <div class="space-y-3">
+                     <h5 class="font-medium text-secondary">Examples:</h5>
+                     <div class="space-y-2">
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                                                   <code class="text-white text-sm font-mono bg-black">replace GET with POST in current request</code>
+                         <button @click="copyLinkToClipboard('replace GET with POST in current request')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">add Content-Type application/json header</code>
+                         <button @click="copyLinkToClipboard('add Content-Type application/json header')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">add SQL injection payloads in the request body params</code>
+                         <button @click="copyLinkToClipboard('add SQL injection payloads in the request body params')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">change parameter value to admin</code>
+                         <button @click="copyLinkToClipboard('change parameter value to admin')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                   <div class="text-xs text-secondary">
+                     <strong>Available Actions:</strong> Replace text, add headers, modify body, find & replace
+                   </div>
+                 </div>
+              </div>
+
+                             <!-- Scope Management -->
+               <div class="chatio-welcome-card">
+                 <div class="flex items-center mb-4">
+                   <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                     <i class="fas fa-bullseye text-white"></i>
+                   </div>
+                   <h4 class="font-semibold text-lg text-primary">Scope Management</h4>
+                 </div>
+                                 <div class="space-y-3 text-sm">
+                   <div class="space-y-3">
+                     <h5 class="font-medium text-secondary">Examples:</h5>
+                     <div class="space-y-2">
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">create scope for testfire.net domain</code>
+                         <button @click="copyLinkToClipboard('create scope for testfire.net domain')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">create scope for vulnbank.com but exclude admin.vulnbank.com</code>
+                         <button @click="copyLinkToClipboard('create scope for vulnbank.com but exclude admin.vulnbank.com')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">create scope for hackme[1-9].com pattern</code>
+                         <button @click="copyLinkToClipboard('create scope for hackme[1-9].com pattern')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">create scope for *.pentest-lab.org wildcard</code>
+                         <button @click="copyLinkToClipboard('create scope for *.pentest-lab.org wildcard')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                   <div class="text-xs text-secondary">
+                     <strong>Available Actions:</strong> Create, update, delete scopes with custom allowlists/denylists
+                   </div>
+                 </div>
+              </div>
+
+                             <!-- File Operations -->
+               <div class="chatio-welcome-card">
+                 <div class="flex items-center mb-4">
+                   <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                     <i class="fas fa-file-alt text-white"></i>
+                   </div>
+                   <h4 class="font-semibold text-lg text-primary">File Operations</h4>
+                 </div>
+                                 <div class="space-y-3 text-sm">
+                   <div class="space-y-3">
+                     <h5 class="font-medium text-secondary">Examples:</h5>
+                     <div class="space-y-2">
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">create wordlist file with usernames: admin,root,user</code>
+                         <button @click="copyLinkToClipboard('create wordlist file with usernames: admin,root,user')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">create payload file with XSS vectors</code>
+                         <button @click="copyLinkToClipboard('create payload file with XSS vectors')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">remove hosted file named wordlist.txt</code>
+                         <button @click="copyLinkToClipboard('remove hosted file named wordlist.txt')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                                                <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-black">create file for subdomain enumeration wordlist</code>
+                         <button @click="copyLinkToClipboard('create file for subdomain enumeration wordlist')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                   <div class="text-xs text-secondary">
+                     <strong>Available Actions:</strong> Create, remove hosted files for fuzzing and testing
+                   </div>
+                 </div>
+              </div>
+
+                             <!-- Search & Filter Actions -->
+               <div class="chatio-welcome-card">
+                 <div class="flex items-center mb-4">
+                   <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                     <i class="fas fa-search text-white"></i>
+                   </div>
+                   <h4 class="font-semibold text-lg text-primary">Search & Filters</h4>
+                 </div>
+                                 <div class="space-y-3 text-sm">
+                   <div class="space-y-3">
+                     <h5 class="font-medium text-secondary">Examples:</h5>
+                     <div class="space-y-2">
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">search for login endpoints in HTTP History</code>
+                         <button @click="copyLinkToClipboard('search for login endpoints in HTTP History')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                                                <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-black">create filter for api endpoints</code>
+                         <button @click="copyLinkToClipboard('create filter for api endpoints')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">find requests with auth patterns</code>
+                         <button @click="copyLinkToClipboard('find requests with auth patterns')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                       <div class="flex items-center justify-between bg-black p-3 rounded-lg border border-gray-800">
+                         <code class="text-white text-sm font-mono bg-transparent">search for endpoints containing 'admin'</code>
+                         <button @click="copyLinkToClipboard('search for endpoints containing \'admin\'')" class="ml-2 text-xs text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800">
+                           <i class="fas fa-copy"></i>
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                   <div class="text-xs text-secondary">
+                     <strong>Available Actions:</strong> HTTP history search, create/update/delete HTTPQL filters
+                   </div>
+                 </div>
+              </div>
+            </div>
+
+            <!-- Pro Tips Section -->
+            <div class="mt-6 p-6 bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg border border-amber-300">
+              <h4 class="font-medium mb-4 flex items-center text-amber-900">
+                <i class="fas fa-lightbulb mr-3 text-amber-600"></i>
+                Pro Tips for Effective Quick Actions
+              </h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-amber-900">
+                <ul class="space-y-2">
+                  <li class="flex items-start"><i class="fas fa-star mr-3 text-amber-600 mt-0.5"></i>Be specific with your requests for better accuracy</li>
+                  <li class="flex items-start"><i class="fas fa-star mr-3 text-amber-600 mt-0.5"></i>Use exact parameter names and values when possible</li>
+                  <li class="flex items-start"><i class="fas fa-star mr-3 text-amber-600 mt-0.5"></i>Include context like "current request" or "active editor"</li>
+                  <li class="flex items-start"><i class="fas fa-star mr-3 text-amber-600 mt-0.5"></i>Combine actions: "replace GET with POST and add JSON header"</li>
+                </ul>
+                <ul class="space-y-2">
+                  <li class="flex items-start"><i class="fas fa-star mr-3 text-amber-600 mt-0.5"></i>Use natural language - AI understands conversational requests</li>
+                  <li class="flex items-start"><i class="fas fa-star mr-3 text-amber-600 mt-0.5"></i>Reference existing scopes/filters by name for updates</li>
+                  <li class="flex items-start"><i class="fas fa-star mr-3 text-amber-600 mt-0.5"></i>Quick Actions work across all Caido tabs and contexts</li>
+                  <li class="flex items-start"><i class="fas fa-star mr-3 text-amber-600 mt-0.5"></i>Perfect for repetitive testing tasks and automation</li>
                 </ul>
               </div>
             </div>
@@ -660,17 +941,17 @@
                     <div>
                       <strong class="text-amber-600">Connection failed:</strong>
                       <ul class="mt-1 ml-4 space-y-1">
-                        <li>• Verify Ollama is running: <button @click="copyToClipboard('ollama serve')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>ollama serve</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
-                        <li>• Check URL is correct: <button @click="copyToClipboard('http://localhost:11434')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>http://localhost:11434</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
-                        <li>• Test with: <button @click="copyToClipboard('curl http://localhost:11434/api/tags')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>curl http://localhost:11434/api/tags</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
+                                          <li>• Verify Ollama is running: <button @click="copyLinkToClipboard('ollama serve')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>ollama serve</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
+                  <li>• Check URL is correct: <button @click="copyLinkToClipboard('http://localhost:11434')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>http://localhost:11434</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
+                  <li>• Test with: <button @click="copyLinkToClipboard('curl http://localhost:11434/api/tags')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>curl http://localhost:11434/api/tags</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
                         <li>• Restart Ollama service if needed</li>
                       </ul>
                     </div>
                     <div>
                       <strong class="text-amber-600">Model issues:</strong>
                       <ul class="mt-1 ml-4 space-y-1">
-                        <li>• Download models: <button @click="copyToClipboard('ollama pull modelname')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>ollama pull modelname</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
-                        <li>• List available: <button @click="copyToClipboard('ollama list')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>ollama list</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
+                                          <li>• Download models: <button @click="copyLinkToClipboard('ollama pull modelname')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>ollama pull modelname</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
+                  <li>• List available: <button @click="copyLinkToClipboard('ollama list')" class="inline-flex items-center text-primary hover:text-amber-600 cursor-pointer"><code>ollama list</code> <i class="fas fa-copy ml-1 text-xs"></i></button></li>
                         <li>• Update model list in settings after pulling new models</li>
                         <li>• Use vision models (llava) for image analysis</li>
                   </ul>
@@ -811,21 +1092,21 @@
             <div class="flex items-center justify-between">
               <div class="chatio-contact-links">
                 <a 
-                  @click.prevent="copyToClipboard('https://amrelsagaei.com')" 
+                  @click.prevent="copyLinkToClipboard('https://amrelsagaei.com')" 
                   class="chatio-contact-link"
                 >
                   <i class="fas fa-globe"></i>
                   Website
                 </a>
                 <a 
-                  @click.prevent="copyToClipboard('info@amralsagaei.com')"
+                  @click.prevent="copyLinkToClipboard('info@amralsagaei.com')"
                   class="chatio-contact-link"
                 >
                   <i class="fas fa-envelope"></i>
                   Email
                 </a>
                 <a 
-                  @click.prevent="copyToClipboard('https://www.linkedin.com/in/amrelsagaei')" 
+                  @click.prevent="copyLinkToClipboard('https://www.linkedin.com/in/amrelsagaei')" 
                   class="chatio-contact-link"
                 >
                   <i class="fab fa-linkedin"></i>
@@ -835,7 +1116,7 @@
               
               <div class="chatio-made-with-love text-muted text-right">
                 Made with <i class="fas fa-heart text-red-500"></i> by <a 
-                  @click.prevent="copyToClipboard('https://amrelsagaei.com')"
+                  @click.prevent="copyLinkToClipboard('https://amrelsagaei.com')"
                   class="text-primary font-medium cursor-pointer no-underline transition-colors hover:text-accent"
                 > Amr Elsagaei</a>
               </div>
@@ -849,6 +1130,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { showToast, copyToClipboard, downloadFile } from '@/services/utils';
 
 // Quick prompts for getting started
 const quickPrompts = [
@@ -915,31 +1197,12 @@ const quickPrompts = [
 ];
 
 // Caido SDK for toasts
+// Use shared toast function, with fallback to custom toast for this component
 const showToast = (message: string, variant: 'success' | 'error' = 'success') => {
   try {
-    // Try Caido SDK first
-    if ((window as any).caidoSDK?.window?.showToast) {
-      (window as any).caidoSDK.window.showToast(message, {
-        variant,
-        duration: 3000
-      });
-      return;
-    }
-    
-    // Fallback: Try parent window Caido SDK
-    if ((window.parent as any)?.caidoSDK?.window?.showToast) {
-      (window.parent as any).caidoSDK.window.showToast(message, {
-        variant,
-        duration: 3000
-      });
-      return;
-    }
-    
-    // Fallback: Create custom toast notification
-    createCustomToast(message, variant);
+    showSharedToast(null, message, variant);
   } catch (error) {
-    console.log(`${variant.toUpperCase()}: ${message}`);
-    // Create custom toast as final fallback
+    // Fallback: Create custom toast notification
     createCustomToast(message, variant);
   }
 };
@@ -1042,31 +1305,11 @@ const createCustomToast = (message: string, variant: 'success' | 'error' = 'succ
   }, 3000);
 };
 
-// Copy to clipboard functionality
-const copyToClipboard = (text: string) => {
-  navigator.clipboard.writeText(text)
-    .then(() => {
-      showToast('Link copied to clipboard', 'success');
-    })
-    .catch(err => {
-      console.error('Failed to copy text:', err);
-      
-      // Fallback method
-      try {
-        const tempInput = document.createElement('input');
-        tempInput.value = text;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        
-        showToast('Link copied to clipboard', 'success');
-      } catch (e) {
-        console.error('Fallback copy method failed:', e);
-        showToast('Failed to copy to clipboard', 'error');
-      }
-    });
-};
+  // Copy to clipboard functionality
+  const copyLinkToClipboard = async (text: string) => {
+    const success = await copyToClipboard(text);
+    showToast(success ? 'Link copied to clipboard' : 'Failed to copy to clipboard', success ? 'success' : 'error');
+  };
 
 // Emits
 const emit = defineEmits<{

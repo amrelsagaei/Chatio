@@ -4,7 +4,7 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   files?: FileAttachment[];
-  images?: string[]; // Base64 encoded images or data URLs
+  images?: string[];
 }
 
 export interface FileAttachment {
@@ -43,22 +43,20 @@ export interface ProviderResponse {
 }
 
 export interface TestConnectionRequest {
-  provider: string;
   apiKey: string;
   baseUrl?: string;
   model?: string;
 }
 
 export interface SendMessageRequest {
-  messages: ChatMessage[];
-  settings: ChatSettings;
-}
-
-// Provider configurations
-export interface ProviderConfig {
-  name: string;
-  baseUrl: string;
-  models: string[];
-  requiresApiKey: boolean;
-  supportedFeatures: string[];
+  messages: any[];
+  settings: {
+    provider: string;
+    model: string;
+    apiKey: string;
+    baseUrl?: string;
+    systemPrompt?: string;
+    maxTokens?: number;
+    temperature?: number;
+  };
 } 

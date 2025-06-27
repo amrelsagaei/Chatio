@@ -306,6 +306,10 @@
                 <i class="fas fa-cog"></i>
                 Export Settings
               </button>
+              <button class="chatio-btn" @click="importSettings">
+                <i class="fas fa-upload"></i>
+                Import Settings
+              </button>
               <button class="chatio-btn" @click="deleteAllChats" style="background: #f97316; color: white; border-color: #f97316;">
                 <i class="fas fa-comments"></i>
                 Delete All Chats
@@ -375,13 +379,21 @@ import InputNumber from 'primevue/inputnumber';
 import Textarea from 'primevue/textarea';
 import Message from 'primevue/message';
 import { useSDK } from '@/plugins/sdk';
-import { ApiService } from '@/services/api';
-import type { TestConnectionRequest } from '@/services/api';
 import ConfirmModal from '@/components/common/ConfirmModal.vue';
+import { CaidoStorageService } from '@/services/storage';
+import { showToast as showSharedToast, downloadFile as downloadSharedFile } from '@/services/utils';
 
-// SDK and API service
+// SDK access
 const sdk = useSDK();
-const apiService = new ApiService(sdk);
+const storageService = new CaidoStorageService(sdk);
+
+// Types
+interface TestConnectionRequest {
+  provider: string;
+  apiKey: string;
+  baseUrl?: string;
+  model?: string;
+}
 
 // Provider configurations
 const providers = reactive({
@@ -481,48 +493,9 @@ const confirmModal = reactive({
 });
 
 // Caido SDK for toasts
+// Use shared toast function to avoid duplication
 const showToast = (message: string, variant: 'success' | 'error' = 'success') => {
-  try {
-    // Try multiple ways to access the toast functionality
-    
-    // Method 1: Using the injected SDK
-    const sdkToast = sdk?.window?.showToast;
-    if (sdkToast && typeof sdkToast === 'function') {
-      sdkToast(message, {
-        variant,
-        duration: 3000
-      });
-      return;
-    }
-    
-    // Method 2: Using window.caidoSDK
-    if ((window as any).caidoSDK?.window?.showToast) {
-      (window as any).caidoSDK.window.showToast(message, {
-        variant,
-        duration: 3000
-      });
-      return;
-    }
-    
-    // Method 3: Try alternative paths
-    if ((window as any).caido?.notifications) {
-      const notify = (window as any).caido.notifications[variant];
-      if (notify && typeof notify === 'function') {
-        notify(message);
-        return;
-      }
-    }
-    
-    // Fallback: Log to console with clear formatting
-    console.log(`%c[TOAST ${variant.toUpperCase()}] ${message}`, 
-      `color: ${variant === 'success' ? 'green' : 'red'}; font-weight: bold;`);
-    
-    // XSS vulnerability removed - no alert fallback
-    
-  } catch (error) {
-    console.error('Toast error:', error);
-    console.log(`FALLBACK TOAST [${variant.toUpperCase()}]: ${message}`);
-  }
+  showSharedToast(sdk, message, variant);
 };
 
 // Methods
@@ -607,7 +580,7 @@ const testProvider = async (providerName: string) => {
     }
 
     // Test the connection using the backend API
-    const result = await apiService.testConnection(testRequest);
+    const result = await sdk.backend.testConnection(testRequest);
     
     if (result.success) {
       let successMessage = 'Connection successful!'; // Default fallback
@@ -697,15 +670,14 @@ const saveAllSettings = async () => {
   saving.value = true;
   
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     const allSettings = {
       providers,
       chatSettings,
       timestamp: new Date().toISOString()
     };
     
-    localStorage.setItem('chatio-settings', JSON.stringify(allSettings));
+    // Use SDK storage instead of localStorage
+    await storageService.setSettings(allSettings);
     
     connectionStatus.value = {
       type: 'success',
@@ -719,10 +691,11 @@ const saveAllSettings = async () => {
     
     // Dispatch global event for status update
     window.dispatchEvent(new CustomEvent('chatio-settings-updated'));
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Failed to save settings:', error);
     connectionStatus.value = {
       type: 'error',
-      message: 'Failed to save settings. Please try again.'
+      message: `Failed to save settings: ${error.message}`
     };
     
     showToast('Failed to save settings', 'error');
@@ -731,38 +704,34 @@ const saveAllSettings = async () => {
   }
 };
 
-const loadSettings = () => {
+const loadSettings = async () => {
   try {
-    const saved = localStorage.getItem('chatio-settings');
-    if (saved) {
-      const settings = JSON.parse(saved);
-      
-      // Load provider settings
-      if (settings.providers) {
-        Object.keys(providers).forEach(provider => {
-          const providerKey = provider as keyof typeof providers;
-          if (settings.providers[provider]) {
-            Object.assign(providers[providerKey], settings.providers[provider]);
-          }
-        });
-      }
-      
-      // Load chat settings
-      if (settings.chatSettings) {
-        Object.assign(chatSettings, settings.chatSettings);
-      }
+    const settings = await storageService.getSettings();
+    
+    // Load provider settings
+    if (settings?.providers) {
+      Object.keys(providers).forEach(provider => {
+        const providerKey = provider as keyof typeof providers;
+        if (settings.providers[provider]) {
+          Object.assign(providers[providerKey], settings.providers[provider]);
+        }
+      });
+    }
+    
+    // Load chat settings
+    if (settings?.chatSettings) {
+      Object.assign(chatSettings, settings.chatSettings);
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
   }
 };
 
-const exportChatHistory = () => {
+const exportChatHistory = async () => {
   try {
-    const chatHistory = localStorage.getItem('chatio-chat-history');
-    if (chatHistory) {
-      const data = JSON.parse(chatHistory);
-      downloadFile(JSON.stringify(data, null, 2), `chatio-chat-history-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+    const chatHistory = await storageService.getChatHistory();
+    if (chatHistory && chatHistory.length > 0) {
+      downloadFile(JSON.stringify(chatHistory, null, 2), `chatio-chat-history-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
       showToast('Chat history exported successfully!', 'success');
     } else {
       showToast('No chat history found to export', 'error');
@@ -779,7 +748,7 @@ const exportSettings = () => {
       providers,
       chatSettings,
       timestamp: new Date().toISOString(),
-      version: '1.0.0'
+      version: '1.0.1'
     };
     
     downloadFile(JSON.stringify(allSettings, null, 2), `chatio-settings-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
@@ -788,6 +757,82 @@ const exportSettings = () => {
     console.error('Failed to export settings:', error);
     showToast('Failed to export settings', 'error');
   }
+};
+
+const importSettings = () => {
+  // Create hidden file input
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.style.display = 'none';
+  
+  input.onchange = async (event) => {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const importedSettings = JSON.parse(text);
+      
+      // Validate the imported settings structure
+      if (!importedSettings.providers || !importedSettings.chatSettings) {
+        showToast('Invalid settings file format', 'error');
+        return;
+      }
+      
+      // Show confirmation dialog
+      confirmModal.show = true;
+      confirmModal.title = 'Import Settings';
+      confirmModal.message = 'Are you sure you want to import these settings?';
+      confirmModal.details = [
+        'This will overwrite your current settings.',
+        'Current settings will be lost.',
+        `Imported from: ${file.name}`,
+        `Export date: ${importedSettings.timestamp || 'Unknown'}`
+      ];
+      confirmModal.type = 'warning';
+      confirmModal.confirmText = 'Import Settings';
+      confirmModal.cancelText = 'Cancel';
+      confirmModal.showCancel = true;
+      confirmModal.onConfirm = async () => {
+        try {
+          // Update providers
+          Object.keys(importedSettings.providers).forEach(key => {
+            if (providers[key as keyof typeof providers]) {
+              Object.assign(providers[key as keyof typeof providers], importedSettings.providers[key]);
+            }
+          });
+          
+          // Update chat settings
+          Object.assign(chatSettings, importedSettings.chatSettings);
+          
+          // Save the imported settings
+          await saveAllSettings();
+          
+          showToast('Settings imported successfully!', 'success');
+          
+          connectionStatus.value = {
+            type: 'success',
+            message: 'Settings imported and saved successfully!'
+          };
+        } catch (error) {
+          console.error('Failed to apply imported settings:', error);
+          showToast('Failed to apply imported settings', 'error');
+        } finally {
+          closeConfirmModal();
+        }
+      };
+      
+    } catch (error) {
+      console.error('Failed to parse settings file:', error);
+      showToast('Invalid JSON file or corrupted settings', 'error');
+    }
+  };
+  
+  // Trigger file selection
+  document.body.appendChild(input);
+  input.click();
+  document.body.removeChild(input);
 };
 
 const deleteAllChats = () => {
@@ -799,16 +844,22 @@ const deleteAllChats = () => {
   confirmModal.confirmText = 'Delete All Chats';
   confirmModal.cancelText = 'Cancel';
   confirmModal.showCancel = true;
-  confirmModal.onConfirm = () => {
-    localStorage.removeItem('chatio-chat-history');
-    
-    connectionStatus.value = {
-      type: 'success',
-      message: 'All chats deleted successfully!'
-    };
-    
-    showToast('All chats deleted successfully!', 'success');
-    closeConfirmModal();
+  confirmModal.onConfirm = async () => {
+    try {
+      await storageService.clearChatHistory();
+      
+      connectionStatus.value = {
+        type: 'success',
+        message: 'All chats deleted successfully!'
+      };
+      
+      showToast('All chats deleted successfully!', 'success');
+    } catch (error) {
+      console.error('Failed to delete chats:', error);
+      showToast('Failed to delete chats', 'error');
+    } finally {
+      closeConfirmModal();
+    }
   };
 };
 
@@ -821,35 +872,34 @@ const clearAllData = () => {
   confirmModal.confirmText = 'Clear All Data';
   confirmModal.cancelText = 'Cancel';
   confirmModal.showCancel = true;
-  confirmModal.onConfirm = () => {
-    localStorage.removeItem('chatio-settings');
-    localStorage.removeItem('chatio-chat-history');
-    localStorage.removeItem('chatio-app-state');
-    
-    // Reset all settings
-    Object.keys(providers).forEach(key => {
-      const providerKey = key as keyof typeof providers;
+  confirmModal.onConfirm = async () => {
+    try {
+      await storageService.clearAll();
       
-      if (key === 'local') {
-        Object.assign(providers[providerKey], {
-          url: 'http://localhost:11434',
-          models: '',
-          apiKey: ''
-        });
-      } else if (key === 'deepseek') {
-        Object.assign(providers[providerKey], {
-          apiKey: ''
-        });
-      } else {
-        // For openai, anthropic, google - only API key
-        Object.assign(providers[providerKey], {
-          apiKey: ''
-        });
-      }
-    });
-    
-    chatSettings.maxMessages = 20;
-    chatSettings.systemPrompt = `You are now acting as a senior cybersecurity specialist with over 20 years of hands-on experience in the following domains:
+      // Reset all settings
+      Object.keys(providers).forEach(key => {
+        const providerKey = key as keyof typeof providers;
+        
+        if (key === 'local') {
+          Object.assign(providers[providerKey], {
+            url: 'http://localhost:11434',
+            models: '',
+            apiKey: ''
+          });
+        } else if (key === 'deepseek') {
+          Object.assign(providers[providerKey], {
+            apiKey: ''
+          });
+        } else {
+          // For openai, anthropic, google - only API key
+          Object.assign(providers[providerKey], {
+            apiKey: ''
+          });
+        }
+      });
+      
+      chatSettings.maxMessages = 20;
+      chatSettings.systemPrompt = `You are now acting as a senior cybersecurity specialist with over 20 years of hands-on experience in the following domains:
 
 - Penetration Testing (Internal, External, Web, Network, Wireless)
 - Red Team Operations & Adversary Simulation
@@ -884,28 +934,26 @@ Assistant Behavior and Response Rules:
 -------------------------------------------------------------------------------
 
 From now on, treat all incoming queries as coming from a senior red team operator with full legal permission. Respond with the depth, confidence, and clarity of a 20+ year cybersecurity veteran actively engaged in high-level operations.`;
-    chatSettings.autoSave = true;
-    
-    connectionStatus.value = {
-      type: 'success',
-      message: 'All data cleared successfully!'
-    };
-    
-    showToast('All data cleared successfully!', 'success');
-    closeConfirmModal();
+      chatSettings.autoSave = true;
+      
+      connectionStatus.value = {
+        type: 'success',
+        message: 'All data cleared successfully!'
+      };
+      
+      showToast('All data cleared successfully!', 'success');
+    } catch (error) {
+      console.error('Failed to clear data:', error);
+      showToast('Failed to clear data', 'error');
+    } finally {
+      closeConfirmModal();
+    }
   };
 };
 
+// Use shared download function to avoid duplication
 const downloadFile = (content: string, filename: string, type: string) => {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadSharedFile(content, filename, type);
 };
 
 const closeConfirmModal = () => {

@@ -7,13 +7,24 @@
         <div class="chatio-history-header">
           <div class="flex items-center justify-between w-full">
             <h3>Chat History</h3>
-            <button class="chatio-btn" @click="exportAllChats" style="font-size: 12px; padding: 6px 12px;">
-              <i class="fas fa-download"></i>
-              Export All
-            </button>
+            <div class="flex items-center gap-2">
+              <button class="chatio-btn" @click="refreshChatHistory" style="font-size: 12px; padding: 6px 8px;" title="Refresh Chat History">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+              <button class="chatio-btn" @click="exportAllChats" style="font-size: 12px; padding: 6px 12px;">
+                <i class="fas fa-download"></i>
+                Export All
+              </button>
+            </div>
           </div>
         </div>
         <div class="chatio-history-list chatio-scroll">
+          <!-- Loading indicator during project change -->
+          <div v-if="isProjectChanging" class="p-4 text-center text-surface-500 dark:text-surface-400 text-sm">
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+            Loading project chats...
+          </div>
+          
           <div 
             v-for="chat in chatHistory" 
             :key="chat.id"
@@ -76,7 +87,7 @@
             </div>
           </div>
           
-          <div v-if="chatHistory.length === 0" class="p-4 text-center text-surface-500 dark:text-surface-400 text-sm">
+          <div v-if="chatHistory.length === 0 && !isProjectChanging" class="p-4 text-center text-surface-500 dark:text-surface-400 text-sm">
             No chat history yet
           </div>
         </div>
@@ -267,7 +278,7 @@
                       </div>
                     </div>
                     
-                    <!-- Message Content with MINIMAL Code Block Detection -->
+                    <!-- Message Content with SECURE Code Block Detection -->
                     <div v-html="formatMessageSafely(message.content, message.role === 'user')"></div>
                   </div>
                 </div>
@@ -351,9 +362,10 @@
             <textarea
               ref="messageInput"
               v-model="currentMessage"
-              placeholder="Ask about security testing, vulnerability analysis, or code review..."
+              placeholder="Ask about security testing, vulnerability analysis, or code review... (Type @ to mention replay sessions)"
               class="chatio-input"
               @keydown="handleKeyDown"
+              @input="handleMentionInput"
               @paste="handlePaste"
               @drop="handleDrop"
               @dragover="handleDragOver"
@@ -382,20 +394,13 @@
                 </button>
                 <button 
                   class="chatio-input-tool-btn" 
-                  @click="insertHttpRequest"
-                  title="Insert HTTP Request"
-                >
-                  <i class="fas fa-globe"></i>
-                  HTTP
-                </button>
-                <button 
-                  class="chatio-input-tool-btn" 
                   @click="pasteFromClipboard"
                   title="Paste Screenshot (Ctrl+V)"
                 >
                   <i class="fas fa-paste"></i>
                   Paste
                 </button>
+
               </div>
               
               <div class="chatio-toolbar-right">
@@ -417,6 +422,35 @@
                   <i v-else class="fas fa-paper-plane"></i>
                   Send
                 </button>
+              </div>
+            </div>
+
+            <!-- Mention Popup - Inside input container -->
+            <div v-if="replayMentions.show" class="mention-popup-overlay">
+              <div class="mention-popup">
+                <div class="mention-popup-header">
+                  <i class="fas fa-sync-alt"></i>
+                  <span>Replay Sessions</span>
+                  <span class="mention-count">{{ replayMentions.sessions.length }}</span>
+                </div>
+                <div v-if="replayMentions.sessions.length > 0" class="mention-popup-list">
+                  <button
+                    v-for="(session, index) in replayMentions.sessions.slice(0, 5)"
+                    :key="session.id"
+                    :class="['mention-popup-item', { 'selected': index === replayMentions.selectedIndex }]"
+                    :title="`Replay session: ${session.name} (${session.id})`"
+                    @click="selectReplaySession(session)"
+                  >
+                    <div class="session-info">
+                      <span class="session-name">{{ session.name }}</span>
+                      <span class="session-id">{{ session.id.substring(0, 8) }}...</span>
+                    </div>
+                  </button>
+                </div>
+                <div v-else class="mention-popup-empty">
+                  <i class="fas fa-search"></i>
+                  <span>No matches for "{{ replayMentions.query }}"</span>
+                </div>
               </div>
             </div>
 
@@ -513,9 +547,9 @@
               </div>
               <div class="chatio-provider-name">OpenAI</div>
             </div>
-            <div v-if="getProviderModels('openai').length > 0" class="chatio-provider-models">
+            <div v-if="providerModels.openai.length > 0" class="chatio-provider-models">
               <div 
-                v-for="model in getProviderModels('openai')" 
+                v-for="model in providerModels.openai" 
                 :key="`openai-${model.model}`"
                 class="chatio-model-option"
                 :class="{ selected: selectedModule === model.displayName }"
@@ -542,9 +576,9 @@
               </div>
               <div class="chatio-provider-name">Anthropic</div>
             </div>
-            <div v-if="getProviderModels('anthropic').length > 0" class="chatio-provider-models">
+            <div v-if="providerModels.anthropic.length > 0" class="chatio-provider-models">
               <div 
-                v-for="model in getProviderModels('anthropic')" 
+                v-for="model in providerModels.anthropic" 
                 :key="`anthropic-${model.model}`"
                 class="chatio-model-option"
                 :class="{ selected: selectedModule === model.displayName }"
@@ -571,9 +605,9 @@
               </div>
               <div class="chatio-provider-name">Google</div>
             </div>
-            <div v-if="getProviderModels('google').length > 0" class="chatio-provider-models">
+            <div v-if="providerModels.google.length > 0" class="chatio-provider-models">
               <div 
-                v-for="model in getProviderModels('google')" 
+                v-for="model in providerModels.google" 
                 :key="`google-${model.model}`"
                 class="chatio-model-option"
                 :class="{ selected: selectedModule === model.displayName }"
@@ -600,9 +634,9 @@
               </div>
               <div class="chatio-provider-name">DeepSeek</div>
             </div>
-            <div v-if="getProviderModels('deepseek').length > 0" class="chatio-provider-models">
+            <div v-if="providerModels.deepseek.length > 0" class="chatio-provider-models">
               <div 
-                v-for="model in getProviderModels('deepseek')" 
+                v-for="model in providerModels.deepseek" 
                 :key="`deepseek-${model.model}`"
                 class="chatio-model-option"
                 :class="{ selected: selectedModule === model.displayName }"
@@ -629,9 +663,9 @@
               </div>
               <div class="chatio-provider-name">Local LLM (ollama)</div>
             </div>
-            <div v-if="getProviderModels('local').length > 0" class="chatio-provider-models">
+            <div v-if="providerModels.local.length > 0" class="chatio-provider-models">
               <div 
-                v-for="model in getProviderModels('local')" 
+                v-for="model in providerModels.local" 
                 :key="`local-${model.model}`"
                 class="chatio-model-option"
                 :class="{ selected: selectedModule === model.displayName }"
@@ -667,22 +701,25 @@
     @confirm="confirmModal.onConfirm"
     @cancel="closeConfirmModal"
   />
+
+
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, nextTick, onMounted, watch, onUnmounted, computed } from 'vue';
 import { useSDK } from '@/plugins/sdk';
-import { ApiService } from '@/services/api';
-import type { ChatMessage, ChatSettings, SendMessageRequest } from '@/services/api';
 import ConfirmModal from '@/components/common/ConfirmModal.vue';
+import { CaidoStorageService } from '@/services/storage';
+import { showToast as showSharedToast, copyToClipboard, downloadFile as downloadSharedFile } from '@/services/utils';
+import { getCurrentQuickActionContext, QuickActionFunctions } from '@/utils/caidoUtils';
 // Markdown rendering libraries
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 
-// SDK and API service
+// SDK access
 const sdk = useSDK();
-const apiService = new ApiService(sdk);
+const storageService = new CaidoStorageService(sdk);
 
 interface Message {
   id: string;
@@ -716,6 +753,7 @@ const currentMessage = ref('');
 const isLoading = ref(false);
 const isTyping = ref(false);
 const currentStatus = ref('Ready'); // Add status tracking
+const isProjectChanging = ref(false); // Track project change state
 const loadingChatId = ref<string | null>(null); // Track which chat is loading
 const messagesContainer = ref<HTMLElement>();
 const messageInput = ref<HTMLTextAreaElement>();
@@ -769,11 +807,23 @@ const closeConfirmModal = () => {
   confirmModal.show = false;
 };
 
+
+
 // Module selector state - MODAL VERSION
 const showModuleModal = ref(false);
 const selectedModule = ref<string>('');
 const selectedProvider = ref<string>('');
 const selectedModel = ref<string>('');
+
+// Replay Session Mentions state
+const replayMentions = reactive({
+  show: false,
+  sessions: [] as Array<{ id: string; name: string }>,
+  selectedIndex: 0,
+  query: ''
+});
+
+
 
 // Module/Provider types
 interface Module {
@@ -823,6 +873,28 @@ const canSendMessage = computed(() => {
   return (currentMessage.value.trim() || attachedFiles.length > 0) && !isLoading.value;
 });
 
+// Provider models reactive data
+const providerModels = reactive({
+  openai: [] as any[],
+  anthropic: [] as any[],
+  google: [] as any[],
+  deepseek: [] as any[],
+  local: [] as any[]
+});
+
+// Function to refresh provider models
+const refreshProviderModels = async () => {
+  try {
+    providerModels.openai = await getProviderModels('openai');
+    providerModels.anthropic = await getProviderModels('anthropic');
+    providerModels.google = await getProviderModels('google');
+    providerModels.deepseek = await getProviderModels('deepseek');
+    providerModels.local = await getProviderModels('local');
+  } catch (error) {
+    console.error('Failed to refresh provider models:', error);
+  }
+};
+
 // Quick start prompts
 const quickPrompts = [
   "Analyze this SQL injection vulnerability",
@@ -831,53 +903,17 @@ const quickPrompts = [
   "Help me understand CSRF protection"
 ];
 
-// Caido SDK for toasts
+// Use shared toast function to avoid duplication
 const showToast = (message: string, variant: 'success' | 'error' = 'success') => {
-  try {
-    // Try multiple ways to access the toast functionality
-    
-    // Method 1: Using the injected SDK
-    const sdkToast = sdk?.window?.showToast;
-    if (sdkToast && typeof sdkToast === 'function') {
-      sdkToast(message, {
-        variant,
-        duration: 3000
-      });
-      return;
-    }
-    
-    // Method 2: Using window.caidoSDK
-    if ((window as any).caidoSDK?.window?.showToast) {
-      (window as any).caidoSDK.window.showToast(message, {
-        variant,
-        duration: 3000
-      });
-      return;
-    }
-    
-    // Method 3: Try alternative paths
-    if ((window as any).caido?.notifications) {
-      const notify = (window as any).caido.notifications[variant];
-      if (notify && typeof notify === 'function') {
-        notify(message);
-        return;
-      }
-    }
-    
-    // Fallback: Log to console with clear formatting
-    console.log(`%c[TOAST ${variant.toUpperCase()}] ${message}`, 
-      `color: ${variant === 'success' ? 'green' : 'red'}; font-weight: bold;`);
-    
-    // XSS vulnerability removed - no alert fallback
-    
-  } catch (error) {
-    console.error('Toast error:', error);
-    console.log(`FALLBACK TOAST [${variant.toUpperCase()}]: ${message}`);
-  }
+  showSharedToast(sdk, message, variant);
 };
 
-// Persist state in localStorage with better handling
-const saveAppState = () => {
+
+
+
+
+// Persist state using SDK storage
+const saveAppState = async () => {
   try {
     const state = {
       showHistory: showHistory.value,
@@ -886,19 +922,17 @@ const saveAppState = () => {
       currentMessage: currentMessage.value,
       lastUpdated: Date.now()
     };
-    localStorage.setItem('chatio-app-state', JSON.stringify(state));
-    console.log('App state saved:', { chatId: currentChatId.value, messageCount: currentMessages.length });
+    await storageService.setAppState(state);
+  
   } catch (error) {
     console.error('Failed to save app state:', error);
   }
 };
 
-const loadAppState = () => {
+const loadAppState = async () => {
   try {
-    const saved = localStorage.getItem('chatio-app-state');
-    if (saved) {
-      const state = JSON.parse(saved);
-      
+    const state = await storageService.getAppState();
+    if (state) {
       // Only load if it's recent (within last hour)
       const isRecent = state.lastUpdated && (Date.now() - state.lastUpdated < 3600000);
       
@@ -916,9 +950,9 @@ const loadAppState = () => {
           currentMessages.splice(0, currentMessages.length, ...parsedMessages);
         }
         
-        console.log('App state loaded:', { chatId: currentChatId.value, messageCount: currentMessages.length });
+    
       } else {
-        console.log('App state too old, starting fresh');
+    
       }
     }
   } catch (error) {
@@ -927,33 +961,32 @@ const loadAppState = () => {
 };
 
 // Force save state when leaving component
-const forceStateSync = () => {
+const forceStateSync = async () => {
   // Always save app state (UI state like current message, etc.)
-  saveAppState();
+  await saveAppState();
   
   // Only save chat session if auto-save is enabled or if there are unsaved changes
   if (currentMessages.length > 0) {
     try {
-      const savedSettings = localStorage.getItem('chatio-settings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
+      const settings = await storageService.getSettings();
+      if (settings) {
         const autoSaveEnabled = settings.chatSettings?.autoSave ?? true;
         
         if (autoSaveEnabled) {
-          saveChatSession();
-          console.log('Force sync: Chat session saved (auto-save enabled)');
+          await saveChatSession();
+      
         } else {
-          console.log('Force sync: Chat session NOT saved (auto-save disabled)');
+      
         }
       } else {
         // No settings found, default to saving for safety
-        saveChatSession();
-        console.log('Force sync: Chat session saved (no settings found, defaulting to save)');
+        await saveChatSession();
+    
       }
     } catch (error) {
       console.error('Error during force sync:', error);
       // Fail-safe: save anyway if we can't read settings
-      saveChatSession();
+      await saveChatSession();
     }
   }
 };
@@ -970,18 +1003,18 @@ const sendMessage = async () => {
     return;
   }
 
-  // Check if images are being sent to a local model that doesn't support vision
+  // Check if images are being sent to a model that supports them
   const hasImages = attachedFiles.some(file => file.type.startsWith('image/'));
-  if (hasImages && selectedProvider.value === 'local') {
-    const modelName = selectedModel.value.toLowerCase();
-    const isVisionModel = modelName.includes('llava') || 
-                         modelName.includes('vision') || 
-                         modelName.includes('bakllava') ||
-                         modelName.includes('minicpm') ||
-                         modelName.includes('moondream');
-    
-    if (!isVisionModel) {
-      showToast(`Model "${selectedModel.value}" does not support images. Please select a vision model like "llava" or "llama3.2-vision" for image analysis.`, 'error');
+  if (hasImages) {
+    try {
+      const imageSupport = await sdk.backend.supportsImages(selectedProvider.value, selectedModel.value);
+      if (!imageSupport.supported) {
+        showToast(imageSupport.reason || `Model "${selectedModel.value}" does not support images.`, 'error');
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking image support:', error);
+      showToast('Unable to verify image support for selected model. Please try again.', 'error');
       return;
     }
   }
@@ -990,8 +1023,10 @@ const sendMessage = async () => {
   const targetChatId = currentChatId.value;
   const targetMessages = currentMessages; // Reference to current messages array
 
+  // Process mentions to extract replay session data
+  let messageContent = await extractReplaySessionData(trimmedMessage);
+  
   // If no text content but files are attached, provide a default message
-  let messageContent = trimmedMessage;
   if (!messageContent && attachedFiles.length > 0) {
     const imageCount = attachedFiles.filter(f => f.type.startsWith('image/')).length;
     const fileCount = attachedFiles.length - imageCount;
@@ -1031,7 +1066,7 @@ const sendMessage = async () => {
     if (targetChat) {
       targetChat.messages = [...targetMessages];
       targetChat.messageCount = targetMessages.length;
-      localStorage.setItem('chatio-chat-history', JSON.stringify(chatHistory));
+      await storageService.setChatHistory(chatHistory);
     }
   }
 
@@ -1041,13 +1076,11 @@ const sendMessage = async () => {
   currentStatus.value = 'Connecting...'; // Add status updates
 
   try {
-    // Get current settings from localStorage
-    const savedSettings = localStorage.getItem('chatio-settings');
-    if (!savedSettings) {
+    // Get current settings from SDK storage
+    const settings = await storageService.getSettings();
+    if (!settings) {
       throw new Error('No AI provider configured. Please go to Settings and configure at least one provider.');
     }
-
-    const settings = JSON.parse(savedSettings);
     
     // Use the selected module
     let activeProvider: any = null;
@@ -1056,8 +1089,10 @@ const sendMessage = async () => {
     
     // Use the explicitly selected provider/model
     const selectedProviderConfig = settings.providers?.[selectedProvider.value];
-    if (selectedProviderConfig?.apiKey?.trim()) {
-      activeProvider = selectedProviderConfig;
+    
+    // Local providers (Ollama) don't require API keys
+    if (selectedProvider.value === 'local' || selectedProviderConfig?.apiKey?.trim()) {
+      activeProvider = selectedProviderConfig || {};
       providerName = selectedProvider.value;
       modelName = selectedModel.value;
       currentStatus.value = `Connecting to ${selectedModule.value}...`;
@@ -1099,13 +1134,7 @@ const sendMessage = async () => {
       maxMessages: settings.chatSettings?.maxMessages || 20 // Add context message limit
     };
 
-    console.log('Sending message with settings:', {
-      provider: chatSettings.provider,
-      model: chatSettings.model,
-      hasApiKey: !!chatSettings.apiKey,
-      baseUrl: chatSettings.baseUrl,
-      targetChatId: targetChatId
-    });
+
 
     // Convert messages to backend format
     const backendMessages: ChatMessage[] = targetMessages.map(msg => {
@@ -1149,16 +1178,7 @@ const sendMessage = async () => {
         });
       }
       
-      // Debug logging for file processing
-      if (msg.files && msg.files.length > 0) {
-        console.log(`Processing message with ${msg.files.length} files:`, {
-          messageId: msg.id,
-          fileTypes: msg.files.map(f => f.type),
-          imageCount: images.length,
-          hasContent: !!msg.content,
-          finalContentLength: messageContent.length
-        });
-      }
+
       
       return {
         id: msg.id,
@@ -1174,20 +1194,7 @@ const sendMessage = async () => {
       };
     });
 
-    // Enhanced debug logging after backendMessages is created
-    console.log('Backend messages prepared:', {
-      messageCount: backendMessages.length,
-      hasImages: backendMessages.some(m => m.images && m.images.length > 0),
-      hasFiles: backendMessages.some(m => m.files && m.files.length > 0),
-      lastMessagePreview: backendMessages.length > 0 ? {
-        role: backendMessages[backendMessages.length - 1]?.role || 'unknown',
-        contentLength: backendMessages[backendMessages.length - 1]?.content?.length || 0,
-        hasImages: !!(backendMessages[backendMessages.length - 1]?.images?.length),
-        hasFiles: !!(backendMessages[backendMessages.length - 1]?.files?.length),
-        imageCount: backendMessages[backendMessages.length - 1]?.images?.length || 0,
-        fileCount: backendMessages[backendMessages.length - 1]?.files?.length || 0
-      } : null
-    });
+
 
     // Send message to backend
     const request: SendMessageRequest = {
@@ -1196,7 +1203,7 @@ const sendMessage = async () => {
     };
 
     currentStatus.value = `Processing with ${selectedModule.value}...`;
-    const response = await apiService.sendMessage(request);
+    const response = await sdk.backend.sendMessage(request);
     
     isTyping.value = false;
     currentStatus.value = 'Completed';
@@ -1244,8 +1251,8 @@ const sendMessage = async () => {
         targetChat.messages.push(aiResponse);
         targetChat.messageCount = targetChat.messages.length;
         
-        // Update chat history in localStorage
-        localStorage.setItem('chatio-chat-history', JSON.stringify(chatHistory));
+        // Update chat history using SDK storage
+        await storageService.setChatHistory(chatHistory);
         
         showToast(`Response added to "${targetChat.title}" (previous chat)`, 'success');
       } else {
@@ -1269,7 +1276,7 @@ const sendMessage = async () => {
   }
 };
 
-const newChat = () => {
+const newChat = async () => {
   const newChatId = `chat_${Date.now()}`;
   currentChatId.value = newChatId;
   currentMessages.splice(0);
@@ -1287,7 +1294,7 @@ const newChat = () => {
   
   // Add to beginning of history
   chatHistory.unshift(newChatSession);
-  localStorage.setItem('chatio-chat-history', JSON.stringify(chatHistory));
+  await storageService.setChatHistory(chatHistory);
   
   saveAppState();
   scrollToBottom();
@@ -1347,11 +1354,11 @@ const deleteChat = (chatId: string) => {
   confirmModal.confirmText = 'Delete';
   confirmModal.cancelText = 'Cancel';
   confirmModal.showCancel = true;
-  confirmModal.onConfirm = () => {
+  confirmModal.onConfirm = async () => {
     const index = chatHistory.findIndex(c => c.id === chatId);
     if (index >= 0) {
       chatHistory.splice(index, 1);
-      localStorage.setItem('chatio-chat-history', JSON.stringify(chatHistory));
+      await storageService.setChatHistory(chatHistory);
       
       // If deleting current chat, start new one
       if (chatId === currentChatId.value) {
@@ -1366,7 +1373,7 @@ const deleteChat = (chatId: string) => {
 };
 
 const startEdit = (chatId: string, title: string) => {
-  console.log('Starting edit for chat:', chatId, title);
+
   editingChatId.value = chatId;
   editingTitle.value = title;
   
@@ -1377,15 +1384,15 @@ const startEdit = (chatId: string, title: string) => {
     if (input) {
       input.focus();
       input.select();
-      console.log('Edit input focused');
+
     } else {
       console.error('Edit input not found');
     }
   });
 };
 
-const saveTitle = (chatId: string) => {
-  console.log('Saving title for chat:', chatId, editingTitle.value);
+const saveTitle = async (chatId: string) => {
+
   
   const trimmedTitle = editingTitle.value.trim();
   
@@ -1397,9 +1404,9 @@ const saveTitle = (chatId: string) => {
   const chat = chatHistory.find(c => c.id === chatId);
   if (chat) {
     chat.title = trimmedTitle;
-    localStorage.setItem('chatio-chat-history', JSON.stringify(chatHistory));
+    await storageService.setChatHistory(chatHistory);
     showToast('Chat renamed successfully', 'success');
-    console.log('Chat title saved:', chat.title);
+    
     
     // Cancel edit after successful save
     cancelEdit();
@@ -1411,7 +1418,7 @@ const saveTitle = (chatId: string) => {
 };
 
 const cancelEdit = () => {
-  console.log('Cancelling edit');
+
   editingChatId.value = null;
   editingTitle.value = '';
 };
@@ -1421,13 +1428,12 @@ const saveChatSession = async () => {
   
   // Check if auto-save is enabled in settings
   try {
-    const savedSettings = localStorage.getItem('chatio-settings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
+    const settings = await storageService.getSettings();
+    if (settings) {
       const autoSaveEnabled = settings.chatSettings?.autoSave ?? true; // Default to true for backward compatibility
       
       if (!autoSaveEnabled) {
-        console.log('Auto-save disabled - skipping chat session save');
+    
         return; // Don't save if auto-save is disabled
       }
     }
@@ -1454,29 +1460,50 @@ const saveChatSession = async () => {
     chatHistory.unshift(chatSession);
   }
 
-  // Save to localStorage
-  localStorage.setItem('chatio-chat-history', JSON.stringify(chatHistory));
-  console.log('Chat session saved (auto-save enabled)');
+  // Save using SDK storage
+  await storageService.setChatHistory(chatHistory);
+  
 };
 
-const loadChatHistory = () => {
+const loadChatHistory = async () => {
   try {
-    const saved = localStorage.getItem('chatio-chat-history');
-    if (saved) {
-      const sessions = JSON.parse(saved);
+
+    
+    // Clear existing history first
+    chatHistory.splice(0);
+    
+    // Force UI update
+    await nextTick();
+    
+    const sessions = await storageService.getChatHistory();
+
+    
+    if (sessions && sessions.length > 0) {
       // Ensure proper date parsing
       const parsedSessions = sessions.map((session: any) => ({
         ...session,
         timestamp: new Date(session.timestamp),
-        messages: session.messages.map((msg: any) => ({
+        messages: session.messages?.map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
-        }))
+        })) || []
       }));
-      chatHistory.splice(0, chatHistory.length, ...parsedSessions);
+      
+      // Add sessions one by one for better reactivity
+      for (const session of parsedSessions) {
+        chatHistory.push(session);
+      }
+      
+
+    } else {
+
     }
+    
+    // Force final UI update
+    await nextTick();
+    
   } catch (error) {
-    console.error('Failed to load chat history:', error);
+    console.error('❌ [Chat] Failed to load chat history:', error);
   }
 };
 
@@ -1524,19 +1551,76 @@ const downloadJson = (data: any, filename: string) => {
 };
 
 const copyMessage = async (content: string) => {
-  try {
-    await navigator.clipboard.writeText(content);
-    showToast('Message copied', 'success');
-  } catch (error) {
-    console.error('Failed to copy message:', error);
-    showToast('Failed to copy message', 'error');
-  }
+  const success = await copyToClipboard(content);
+  showToast(success ? 'Message copied' : 'Failed to copy message', success ? 'success' : 'error');
 };
 
 const handleKeyDown = (event: KeyboardEvent) => {
+  // Handle mention dropdown navigation
+  if (replayMentions.show) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      replayMentions.selectedIndex = Math.min(replayMentions.selectedIndex + 1, replayMentions.sessions.length - 1);
+      return;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      replayMentions.selectedIndex = Math.max(replayMentions.selectedIndex - 1, 0);
+      return;
+    } else if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      const selectedSession = replayMentions.sessions[replayMentions.selectedIndex];
+      if (selectedSession) {
+        selectReplaySession(selectedSession);
+      }
+      return;
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      replayMentions.show = false;
+      return;
+    }
+  }
+
+  // Regular Enter to send message
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
     sendMessage();
+  }
+};
+
+const handleMentionInput = (event: Event) => {
+  const input = event.target as HTMLTextAreaElement;
+  if (!input) return;
+  
+  const cursorPos = input.selectionStart || 0;
+  const textBeforeCursor = input.value.slice(0, cursorPos);
+  // More flexible pattern to match @ mentions with any characters except spaces
+  const mentionMatch = textBeforeCursor.match(/@([^\s@]*)$/);
+  
+
+  
+  if (mentionMatch) {
+    const query = mentionMatch[1] || '';
+    replayMentions.query = query;
+
+    
+    if (allReplaySessions.value.length === 0) {
+
+      loadReplaySessions().then(() => {
+  
+        filterReplaySessions();
+        replayMentions.show = true; // Always show popup when @ is typed
+        console.log('[DEBUG] Show popup:', replayMentions.show, 'Sessions:', replayMentions.sessions.length);
+      });
+    } else {
+
+      filterReplaySessions();
+      replayMentions.show = true; // Always show popup when @ is typed
+      console.log('[DEBUG] Show popup:', replayMentions.show, 'Sessions:', replayMentions.sessions.length);
+    }
+  } else {
+    replayMentions.show = false;
+    replayMentions.query = '';
+
   }
 };
 
@@ -1573,10 +1657,10 @@ const handleVisibilityChange = () => {
   if (document.visibilityState === 'hidden') {
     // Save state immediately when tab becomes hidden
     forceStateSync();
-    console.log('Tab hidden - state saved');
+
   } else if (document.visibilityState === 'visible') {
     // Restore state when tab becomes visible again
-    console.log('Tab visible - restoring state');
+
     
     // Small delay to ensure UI is ready
     setTimeout(() => {
@@ -1585,7 +1669,7 @@ const handleVisibilityChange = () => {
       
       // Check if all chats were deleted while away
       if (chatHistory.length === 0 && currentMessages.length > 0) {
-        console.log('Detected all chats were deleted, resetting to new chat');
+
         resetToNewChat();
         return;
       }
@@ -1613,50 +1697,105 @@ onUnmounted(() => {
 });
 
 // Lifecycle
-onMounted(() => {
-  loadChatHistory();
-  loadAppState();
+onMounted(async () => {
+  await loadChatHistory();
+  await loadAppState();
+  await refreshProviderModels();
   
-  // Load selected module from localStorage
+  // Load selected module from SDK storage
   try {
-    const savedModule = localStorage.getItem('chatio-selected-module');
+    const savedModule = await storageService.getSelectedModule();
     if (savedModule) {
-      const module = JSON.parse(savedModule);
       // Check if this module is still available by checking provider settings
-      const hasApiKey = getProviderModels(module.provider).length > 0;
+      const hasApiKey = (await getProviderModels(savedModule.provider)).length > 0;
       if (hasApiKey) {
-        selectedModule.value = module.displayName;
-        selectedProvider.value = module.provider;
-        selectedModel.value = module.model;
+        selectedModule.value = savedModule.displayName;
+        selectedProvider.value = savedModule.provider;
+        selectedModel.value = savedModule.model;
       } else {
         // Clear saved module if no longer available
-        clearSelectedModule();
+        await clearSelectedModule();
       }
     }
   } catch (error) {
     console.error('Failed to load selected module:', error);
   }
   
-  // Listen for settings updates to refresh available models
-  const handleSettingsUpdate = () => {
-    console.log('Settings updated, refreshing available models...');
+  // ENHANCED: Listen for project changes to refresh ALL chat data
+  window.addEventListener('chatio-project-changed', async (event: any) => {
+    const { projectId } = event.detail;
+
     
+    // START PROJECT CHANGE: Set loading state immediately
+    isProjectChanging.value = true;
+    
+    // IMMEDIATE: Clear UI data first for instant feedback
+    currentMessages.splice(0);
+    chatHistory.splice(0);
+    currentChatId.value = 'default';
+    currentMessage.value = '';
+    attachedFiles.splice(0);
+    replayMentions.sessions.splice(0);
+    
+    // Reset states
+    isLoading.value = false;
+    isTyping.value = false;
+    currentStatus.value = '';
+    
+    // FORCE VUE TO UPDATE UI immediately
+    await nextTick();
+    
+    // SEQUENTIAL LOADING: Load data step by step with immediate UI updates
+    try {
+      // Step 1: Load chat history with immediate UI update
+
+      await loadChatHistory();
+      await nextTick(); // Force UI update
+      
+      // Step 2: Load app state
+
+      await loadAppState();
+      await nextTick(); // Force UI update
+      
+      // Step 3: Load replay sessions
+
+      await loadReplaySessions();
+      await nextTick(); // Force UI update
+      
+      // Step 4: Update parent immediately
+      emit('messageCountChanged', chatHistory.length);
+      
+
+      
+    } catch (error) {
+      console.error('❌ [Chat] Error during project change:', error);
+    } finally {
+      // ALWAYS clear loading state
+      isProjectChanging.value = false;
+      await nextTick(); // Final UI update
+    }
+  });
+  
+  // Listen for settings updates to refresh available models
+  const handleSettingsUpdate = async () => {
     // Check if current selected model is still valid
     if (selectedProvider.value) {
-      const currentModels = getProviderModels(selectedProvider.value);
+      const currentModels = await getProviderModels(selectedProvider.value);
       const isCurrentModelStillValid = currentModels.some((m: any) => m.model === selectedModel.value);
       
       if (!isCurrentModelStillValid) {
         // Current model is no longer valid, clear selection
-        clearSelectedModule();
+        await clearSelectedModule();
         showToast('Previously selected model is no longer available', 'error');
       }
     }
+    
+    // Refresh provider models for UI
+    await refreshProviderModels();
   };
   
   // Listen for chat clearing events from settings
   const handleChatsClear = () => {
-    console.log('Received chats clear event, resetting to new chat');
     // Clear local chat history
     chatHistory.splice(0);
     // Reset to new chat state
@@ -1664,14 +1803,26 @@ onMounted(() => {
     showToast('All chats cleared', 'success');
   };
   
+  // Load replay sessions for mentions
+  loadReplaySessions();
+  
+  // Make handleMentionClick available globally for onclick events
+  (window as any).handleMentionClick = handleMentionClick;
+  
   // Listen for settings updates
   window.addEventListener('chatio-settings-updated', handleSettingsUpdate);
   window.addEventListener('chatio-chats-cleared', handleChatsClear);
+  
+
   
   // Cleanup listener on unmount
   onUnmounted(() => {
     window.removeEventListener('chatio-settings-updated', handleSettingsUpdate);
     window.removeEventListener('chatio-chats-cleared', handleChatsClear);
+    window.removeEventListener('chatio-project-changed', (event: any) => {
+      // This will be cleaned up automatically
+    });
+
   });
   
   // SIMPLIFIED AND ROBUST copy function for HTML buttons
@@ -1684,7 +1835,7 @@ onMounted(() => {
       
       if (codeId) {
         codeElement = document.querySelector(`[data-code-content="${codeId}"]`);
-        console.log('Method 1 - Found by data attr:', !!codeElement);
+
       }
       
       // Method 2: Find code element by traversing DOM structure
@@ -1692,7 +1843,7 @@ onMounted(() => {
         const codeBlock = button.closest('.chatio-code-block');
         if (codeBlock) {
           codeElement = codeBlock.querySelector('code');
-          console.log('Method 2 - Found by DOM traversal:', !!codeElement);
+
         }
       }
       
@@ -1701,7 +1852,7 @@ onMounted(() => {
         const parent = button.parentElement?.parentElement;
         if (parent) {
           codeElement = parent.querySelector('code');
-          console.log('Method 3 - Found by parent traversal:', !!codeElement);
+
         }
       }
       
@@ -1712,7 +1863,7 @@ onMounted(() => {
           const copyBtn = code.closest('.chatio-code-block')?.querySelector('.chatio-code-copy');
           if (copyBtn === button) {
             codeElement = code;
-            console.log('Method 4 - Found by reverse lookup:', !!codeElement);
+
             break;
           }
         }
@@ -1730,12 +1881,7 @@ onMounted(() => {
       // Clean up the text (remove extra whitespace)
       codeText = codeText.trim();
       
-      console.log('Code text extracted:', {
-        length: codeText.length,
-        preview: codeText.substring(0, 50) + (codeText.length > 50 ? '...' : ''),
-        element: codeElement.tagName,
-        className: codeElement.className
-      });
+
       
       if (!codeText) {
         console.error('No code content found');
@@ -1762,7 +1908,7 @@ onMounted(() => {
       }, 2000);
       
       showToast('Code copied to clipboard!', 'success');
-      console.log('=== COPY SUCCESS ===', codeText.length, 'characters');
+
       
     } catch (error) {
       console.error('Copy failed:', error);
@@ -1790,7 +1936,7 @@ onMounted(() => {
           
           if (success) {
             showToast('Code copied (fallback method)', 'success');
-            console.log('Fallback copy successful');
+    
             
             // Visual feedback for fallback too
             const originalHTML = button.innerHTML;
@@ -1814,7 +1960,7 @@ onMounted(() => {
     }
   };
   
-  console.log('✅ Enhanced copyCodeBlock function attached to window');
+
   
   // GLOBAL click handler using event delegation (works without rebuild)
   document.addEventListener('click', (event) => {
@@ -1836,39 +1982,38 @@ onMounted(() => {
     }
   });
   
-  console.log('✅ Global click event listener attached to document');
+
   
   // Add event listeners for better state persistence
   window.addEventListener('beforeunload', handleBeforeUnload);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   
   // Auto-save periodically - but only if auto-save is enabled
-  const autoSaveInterval = setInterval(() => {
+  const autoSaveInterval = setInterval(async () => {
     if (currentMessages.length > 0) {
       // Check if auto-save is enabled before saving
       try {
-        const savedSettings = localStorage.getItem('chatio-settings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
+        const settings = await storageService.getSettings();
+        if (settings) {
           const autoSaveEnabled = settings.chatSettings?.autoSave ?? true;
           
           if (autoSaveEnabled) {
-            saveChatSession();
-            saveAppState();
-            console.log('Periodic auto-save completed');
+            await saveChatSession();
+            await saveAppState();
+
           } else {
-            console.log('Periodic auto-save skipped (disabled in settings)');
+
           }
         } else {
           // No settings found, default to saving
-          saveChatSession();
-          saveAppState();
+          await saveChatSession();
+          await saveAppState();
         }
       } catch (error) {
         console.error('Error during periodic auto-save:', error);
         // Fail-safe: save anyway if we can't read settings
-        saveChatSession();
-        saveAppState();
+        await saveChatSession();
+        await saveAppState();
       }
     }
   }, 30000); // Save every 30 seconds
@@ -2025,21 +2170,12 @@ const handleFileUpload = (event: Event) => {
   
   if (files && files.length > 0) {
     Array.from(files).forEach(file => {
-      console.log('Processing file upload:', {
-        name: file.name,
-        type: file.type,
-        size: file.size
-      });
+      
       
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target?.result as string;
-        console.log('File read successfully:', {
-          name: file.name,
-          type: file.type,
-          contentLength: content?.length || 0,
-          isDataURL: content?.startsWith('data:') || false
-        });
+
         
         const attachedFile: AttachedFile = {
           name: file.name,
@@ -2048,7 +2184,7 @@ const handleFileUpload = (event: Event) => {
           preview: file.type.startsWith('image/') ? content : undefined
         };
         attachedFiles.push(attachedFile);
-        console.log('Added to attachedFiles, total files:', attachedFiles.length);
+
       };
       
       reader.onerror = (error) => {
@@ -2081,10 +2217,12 @@ const removeFile = (index: number) => {
   showToast('File removed', 'success');
 };
 
-// Clipboard paste support
+// Clipboard paste support - SIMPLIFIED to prevent duplicate pasting
 const handlePaste = async (event: ClipboardEvent) => {
   const items = event.clipboardData?.items;
   if (!items) return;
+
+  let handledPaste = false;
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
@@ -2094,6 +2232,7 @@ const handlePaste = async (event: ClipboardEvent) => {
     // Handle images
     if (item.type.startsWith('image/')) {
       event.preventDefault();
+      handledPaste = true;
       const file = item.getAsFile();
       if (file) {
         const reader = new FileReader();
@@ -2110,24 +2249,12 @@ const handlePaste = async (event: ClipboardEvent) => {
         };
         reader.readAsDataURL(file);
       }
-    }
-    
-    // Handle text (URLs, code, etc.)
-    if (item.type === 'text/plain') {
-      item.getAsString((text) => {
-        // Check if it's a URL
-        if (text.startsWith('http://') || text.startsWith('https://')) {
-          currentMessage.value += `\n\n[URL: ${text}]\n`;
-        } else if (text.length > 100) {
-          // Long text, treat as code or content
-          currentMessage.value += `\n\n\`\`\`\n${text}\n\`\`\`\n`;
-        } else {
-          // Short text, just append
-          currentMessage.value += text;
-        }
-      });
+      break; // Only handle one image
     }
   }
+
+  // Don't handle text here - let the textarea handle it naturally to prevent duplication
+  // The button pasteFromClipboard() is for manual clipboard access
 };
 
 const pasteFromClipboard = async () => {
@@ -2155,11 +2282,8 @@ const pasteFromClipboard = async () => {
           const text = await clipboardItem.getType(type);
           const textContent = await text.text();
           
-          if (textContent.startsWith('http://') || textContent.startsWith('https://')) {
-            currentMessage.value += `\n\n[URL: ${textContent}]\n`;
-          } else {
-            currentMessage.value += textContent;
-          }
+          // Simple paste - just add the text without any special formatting
+          currentMessage.value += textContent;
           showToast('Text pasted from clipboard', 'success');
         }
       }
@@ -2225,18 +2349,15 @@ const insertCodeBlock = () => {
   });
 };
 
-const insertHttpRequest = () => {
-  const httpTemplate = '```http\n\n```';
+const refreshChatHistory = async () => {
   
-  currentMessage.value += httpTemplate;
-  
-  nextTick(() => {
-    if (messageInput.value) {
-      messageInput.value.focus();
-      const position = currentMessage.value.length - 3; // Position before closing ```
-      messageInput.value.setSelectionRange(position, position);
-    }
-  });
+  isProjectChanging.value = true;
+  try {
+    await loadChatHistory();
+    showToast('Chat history refreshed', 'success');
+  } finally {
+    isProjectChanging.value = false;
+  }
 };
 
 // New methods
@@ -2280,27 +2401,29 @@ const closeImageModal = () => {
   imageModal.currentIndex = 0;
 };
 
-const copyToClipboard = async (content: string) => {
-  try {
-    await navigator.clipboard.writeText(content);
-    showToast('Content copied to clipboard', 'success');
-  } catch (error) {
-    console.error('Failed to copy to clipboard:', error);
-    showToast('Failed to copy to clipboard', 'error');
-  }
+const copyContentToClipboard = async (content: string) => {
+  const success = await copyToClipboard(content);
+  showToast(success ? 'Content copied to clipboard' : 'Failed to copy to clipboard', success ? 'success' : 'error');
 };
 
 // ENHANCED MARKDOWN PROCESSING WITH PROPER LIBRARY AND CODE BLOCK SUPPORT
 const formatMessageSafely = (content: string, isUserMessage: boolean = false) => {
   // For USER messages: ESCAPE HTML to show as plain text (no XSS execution)
   if (isUserMessage) {
-    let userContent = content
+    // HIDE CONTEXT DATA: Remove CONTEXT sections from user messages before display
+    let cleanContent = content.replace(/\n\n--- CONTEXT:.*?--- END CONTEXT ---\n/gs, '');
+    
+    let userContent = cleanContent
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#x27;')
       .replace(/\n/g, '<br>');
+    
+    // Add mention highlighting for user messages too
+    userContent = formatMessageWithMentions(userContent, true);
+    
     return `<div class="chatio-markdown">${userContent}</div>`;
   }
 
@@ -2318,6 +2441,9 @@ const formatMessageSafely = (content: string, isUserMessage: boolean = false) =>
     // SECURITY FIX: Only decode entities WITHIN code blocks, not in regular content
     html = enhanceCodeBlocksSecurely(html);
     
+    // Add mention highlighting AFTER markdown processing but BEFORE DOMPurify
+    html = formatMessageWithMentions(html, false);
+    
     // Apply DOMPurify for additional security (allow basic formatting but no scripts)
     html = DOMPurify.sanitize(html, {
       ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'code', 'pre', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'a', 'table', 'thead', 'tbody', 'tr', 'td', 'th'],
@@ -2334,8 +2460,23 @@ const formatMessageSafely = (content: string, isUserMessage: boolean = false) =>
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
+    
+    // Add mention highlighting to fallback content too
+    fallbackContent = formatMessageWithMentions(fallbackContent, false);
+    
     return `<div class="chatio-markdown">${fallbackContent}</div>`;
   }
+};
+
+// Format messages with mention highlighting
+const formatMessageWithMentions = (content: string, isUserMessage: boolean = false) => {
+  if (!content) return '';
+  
+  // Then highlight replay session mentions for both user and AI messages with click handler
+  return content.replace(
+    /@([^[]+)\[([^\]]+)\]/g,
+    '<span class="chatio-mention" title="Replay session: $1 ($2)" onclick="handleMentionClick(\'$2\', \'$1\')">@$1</span>'
+  );
 };
 
 // SECURE function to enhance code blocks - NO COPY BUTTONS
@@ -2396,17 +2537,7 @@ const decodeCodeEntities = (code: string): string => {
     .replace(/&amp;/g, '&'); // This should be last to avoid double-decoding
 };
 
-// Function to decode ALL HTML entities back to original characters
-const decodeAllHtmlEntities = (html: string): string => {
-  return html
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&'); // This should be last to avoid double-decoding
-};
+// decodeAllHtmlEntities function removed - was defined but never used
 
 // Function to apply syntax highlighting - NO ENCODING
 const applyHighlighting = (code: string, language: string | null): string => {
@@ -2427,10 +2558,7 @@ const applyHighlighting = (code: string, language: string | null): string => {
   return code;
 };
 
-// Helper function - COMPLETELY DISABLED  
-const escapeHtml = (text: string): string => {
-  return text;
-};
+// escapeHtml function removed - was disabled and not used
 
 // Helper function to get display name for programming languages
 const getLanguageDisplayName = (language: string): string => {
@@ -2547,47 +2675,7 @@ const formatFileSize = (bytes: number) => {
 
 const downloadFile = (file: { name: string; content: string; type: string }) => {
   try {
-    let content = file.content;
-    let mimeType = 'application/octet-stream';
-    
-    // If it's a base64 data URL, extract the content and set proper mime type
-    if (content.startsWith('data:')) {
-      const matches = content.match(/^data:([^;]+);base64,(.+)$/);
-      if (matches && matches[1] && matches[2]) {
-        mimeType = matches[1];
-        content = matches[2];
-        // Convert base64 to blob
-        const byteCharacters = atob(content);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: mimeType });
-        
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        return;
-      }
-    }
-    
-    // For text files, create blob directly
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
+    downloadSharedFile(file);
     showToast(`Downloaded ${file.name}`, 'success');
   } catch (error) {
     console.error('Failed to download file:', error);
@@ -2605,12 +2693,10 @@ const closeModuleModal = () => {
 };
 
 // Get models for a specific provider
-const getProviderModels = (provider: string) => {
+const getProviderModels = async (provider: string) => {
   try {
-    const settings = localStorage.getItem('chatio-settings');
-    if (!settings) return [];
-    
-    const parsedSettings = JSON.parse(settings);
+    const parsedSettings = await storageService.getSettings();
+    if (!parsedSettings) return [];
     const providers = parsedSettings.providers || {};
     
     const providerConfig = providers[provider];
@@ -2649,7 +2735,7 @@ const getProviderModels = (provider: string) => {
 };
 
 // Updated selectModule function
-const selectModule = (module: any) => {
+const selectModule = async (module: any) => {
   // Handle special case for configure-models placeholder
   if (module.model === 'configure-models') {
     showModuleModal.value = false;
@@ -2662,13 +2748,13 @@ const selectModule = (module: any) => {
   selectedModel.value = module.model;
   showModuleModal.value = false;
   
-  // Save selected module to localStorage for persistence
+  // Save selected module to SDK storage for persistence
   try {
-    localStorage.setItem('chatio-selected-module', JSON.stringify({
+    await storageService.setSelectedModule({
       provider: module.provider,
       model: module.model,
       displayName: module.displayName
-    }));
+    });
     showToast(`Selected ${module.displayName}`, 'success');
   } catch (error) {
     console.error('Failed to save selected module:', error);
@@ -2715,15 +2801,15 @@ const getCurrentImage = () => {
   return null;
 };
 
-const clearSelectedModule = () => {
+const clearSelectedModule = async () => {
   selectedModule.value = '';
   selectedProvider.value = '';
   selectedModel.value = '';
   showModuleModal.value = false;
   
-  // Remove from localStorage
+  // Remove from SDK storage
   try {
-    localStorage.removeItem('chatio-selected-module');
+    await storageService.setSelectedModule(null);
   } catch (error) {
     console.error('Failed to clear selected module:', error);
   }
@@ -2770,20 +2856,7 @@ const getBotDisplayName = (provider?: string, model?: string) => {
   return modelName;
 };
 
-const previewFile = (file: AttachedFile) => {
-  const content = file.content.length > 500 ? file.content.substring(0, 500) + '...' : file.content;
-  
-  confirmModal.title = 'File Preview';
-  confirmModal.message = `File: ${file.name}\nType: ${file.type}\nSize: ${file.content.length} chars`;
-  confirmModal.details = [`Content preview:\n${content}`];
-  confirmModal.type = 'alert';
-  confirmModal.confirmText = 'Close';
-  confirmModal.showCancel = false;
-  confirmModal.onConfirm = () => {
-    closeConfirmModal();
-  };
-  confirmModal.show = true;
-};
+// previewFile function removed - was defined but never used
 
 // Get provider icon based on selected provider
 const getSelectedProviderIcon = () => {
@@ -2829,16 +2902,15 @@ const manualSaveChatSession = async () => {
     chatHistory.unshift(chatSession);
   }
 
-  localStorage.setItem('chatio-chat-history', JSON.stringify(chatHistory));
-  console.log('Chat session manually saved');
+  await storageService.setChatHistory(chatHistory);
+  
 };
 
 // Function to check if auto-save is currently enabled
-const isAutoSaveEnabled = (): boolean => {
+const isAutoSaveEnabled = async (): Promise<boolean> => {
   try {
-    const savedSettings = localStorage.getItem('chatio-settings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
+    const settings = await storageService.getSettings();
+    if (settings) {
       return settings.chatSettings?.autoSave ?? true;
     }
   } catch (error) {
@@ -2859,10 +2931,10 @@ const clearAllChats = () => {
   confirmModal.confirmText = 'Clear All';
   confirmModal.cancelText = 'Cancel';
   confirmModal.showCancel = true;
-  confirmModal.onConfirm = () => {
+  confirmModal.onConfirm = async () => {
     // Clear chat history
     chatHistory.splice(0);
-    localStorage.removeItem('chatio-chat-history');
+    await storageService.clearChatHistory();
     
     // Reset current chat state
     currentMessages.splice(0);
@@ -2874,15 +2946,213 @@ const clearAllChats = () => {
     currentChatId.value = newChatId;
     
     // Clear app state
-    localStorage.removeItem('chatio-app-state');
+    await storageService.setAppState(null);
     
     // Save new state
-    saveAppState();
+    await saveAppState();
     
     showToast('All chats cleared', 'success');
     closeConfirmModal();
   };
   confirmModal.show = true;
+};
+
+// Store all available sessions
+const allReplaySessions = ref<Array<{ id: string; name: string }>>([]);
+
+const loadReplaySessions = async () => {
+  try {
+
+    const rawSessions = sdk.replay.getSessions();
+
+    
+    // Check the actual structure of the session objects
+    if (rawSessions.length > 0) {
+
+    }
+    
+    const sessions = rawSessions.map((session: any) => ({
+      id: session.id || session.getId?.() || 'unknown',
+      name: session.name || session.getName?.() || session.label || `Session ${session.id || 'unknown'}`
+    }));
+
+    
+    allReplaySessions.value = sessions;
+    replayMentions.sessions = sessions;
+  } catch (error) {
+    console.error('[DEBUG] Error loading replay sessions:', error);
+    replayMentions.sessions = [];
+  }
+};
+
+const filterReplaySessions = () => {
+  if (!replayMentions.query) {
+    replayMentions.sessions = allReplaySessions.value;
+  } else {
+    replayMentions.sessions = allReplaySessions.value.filter(session =>
+      session.name.toLowerCase().includes(replayMentions.query.toLowerCase()) ||
+      session.id.toLowerCase().includes(replayMentions.query.toLowerCase())
+    );
+  }
+  replayMentions.selectedIndex = 0;
+};
+
+const selectReplaySession = (session: { id: string; name: string }) => {
+  if (!messageInput.value) return;
+  
+  const input = messageInput.value;
+  const cursorPos = input.selectionStart || 0;
+  const textBeforeCursor = input.value.slice(0, cursorPos);
+  const textAfterCursor = input.value.slice(cursorPos);
+  
+  // Create mention with special formatting for visual highlighting
+  const mentionText = `@${session.name}[${session.id}] `;
+  const newTextBefore = textBeforeCursor.replace(/@[^\s@]*$/, mentionText);
+  
+  input.value = newTextBefore + textAfterCursor;
+  currentMessage.value = input.value;
+  
+  const newCursorPos = newTextBefore.length;
+  input.setSelectionRange(newCursorPos, newCursorPos);
+  
+  replayMentions.show = false;
+  replayMentions.query = '';
+  showToast(`Added replay session: ${session.name}`, 'success');
+};
+
+// PROPER: Extract replay session data like NotesPlusPlus - HIDE from user, send to AI
+const extractReplaySessionData = async (content: string): Promise<string> => {
+  let enhancedContent = content;
+  let hasValidMentions = false;
+  
+  // Process @session[id] mentions but DON'T show the data to user
+  const mentionRegex = /@([^[]+)\[([^\]]+)\]/g;
+  let match;
+  
+  while ((match = mentionRegex.exec(content)) !== null) {
+    const sessionName = match[1];
+    const sessionId = match[2];
+    
+    try {
+      // Use GraphQL like NotesPlusPlus does - get actual session data
+      const sessionResponse = await sdk.graphql.replaySessionEntries({
+        id: sessionId,
+      });
+      
+      const activeEntryId = sessionResponse?.replaySession?.activeEntry?.id;
+      
+      if (activeEntryId) {
+        const entryResponse = await sdk.graphql.replayEntry({
+          id: activeEntryId,
+        });
+        
+        const sessionContent = entryResponse?.replayEntry?.raw || "";
+        
+        if (sessionContent) {
+          // HIDDEN: Add full request data for AI (user won't see this)
+          let hiddenSessionData = `\n\n--- CONTEXT: Replay Session ${sessionName} ---\n`;
+          hiddenSessionData += sessionContent;
+          hiddenSessionData += `\n--- END CONTEXT ---\n`;
+          
+          // Add to message for AI but don't replace the mention visually
+          enhancedContent += hiddenSessionData;
+          hasValidMentions = true;
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch session data for ${sessionId}:`, error);
+    }
+  }
+  
+  // Auto-inject current context if @ is used (like NotesPlusPlus behavior)  
+  if (hasValidMentions || content.includes('@')) {
+    try {
+      const contextResult = await sdk.backend.getCurrentContext();
+      
+      if (contextResult.success && contextResult.data) {
+        // HIDDEN: Add context for AI only
+        let hiddenContext = `\n\n--- CONTEXT: Current Caido Session ---\n`;
+        hiddenContext += `Project: ${contextResult.data.project?.name || 'Default'}\n`;
+        hiddenContext += `Note: ${contextResult.data.note}\n`;
+        hiddenContext += `Timestamp: ${contextResult.data.timestamp}\n`;
+        hiddenContext += `--- END CONTEXT ---\n`;
+        
+        enhancedContent += hiddenContext;
+      }
+    } catch (error) {
+      console.warn('Failed to get current context:', error);
+    }
+  }
+  
+  return enhancedContent;
+};
+
+// PROPER: Handle mention clicks like NotesPlusPlus - show HTTP request editor
+const handleMentionClick = async (sessionId: string, sessionName: string) => {
+  try {
+
+    
+    // Use GraphQL like NotesPlusPlus to get session data
+    const sessionResponse = await sdk.graphql.replaySessionEntries({
+      id: sessionId,
+    });
+    
+    const activeEntryId = sessionResponse?.replaySession?.activeEntry?.id;
+    
+    if (!activeEntryId) {
+      showToast('Replay session not available', 'error');
+      return;
+    }
+    
+    const entryResponse = await sdk.graphql.replayEntry({
+      id: activeEntryId,
+    });
+    
+    const sessionContent = entryResponse?.replayEntry?.raw || "";
+    
+    if (!sessionContent) {
+      showToast('No session data available', 'error');
+      return;
+    }
+    
+    // Create HTTP request editor like NotesPlusPlus does
+    const requestEditor = sdk.ui.httpRequestEditor();
+    const editorElement = requestEditor.getElement();
+    
+    // Show in a modal or directly open the replay tab
+    const container = document.createElement('div');
+    container.style.width = '100%';
+    container.style.height = '400px';
+    container.appendChild(editorElement);
+    
+    // Set the request content
+    requestAnimationFrame(() => {
+      try {
+        const view = requestEditor.getEditorView();
+        if (view?.state?.doc) {
+          view.dispatch({
+            changes: {
+              from: 0,
+              to: view.state.doc.length,
+              insert: sessionContent,
+            },
+          });
+        }
+      } catch (err) {
+        console.error("Couldn't set editor content:", err);
+      }
+    });
+    
+    // Alternative: Open directly in Caido replay tab (cleaner UX)
+    sdk.replay.openTab(sessionId);
+    sdk.navigation.goTo("/replay");
+    
+    showToast(`Opened replay session: ${sessionName}`, 'success');
+    
+  } catch (error) {
+    console.error('Error handling mention click:', error);
+    showToast('Failed to open replay session', 'error');
+  }
 };
 
 </script>
@@ -2891,6 +3161,37 @@ const clearAllChats = () => {
 /* Component styles are handled by design-system.css */
 .animate-bounce {
   animation: bounce 1s infinite;
+}
+
+/* FIXED: Prevent drop overlay from shaking by removing any animations */
+.chatio-drop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(var(--chatio-primary-rgb), 0.1);
+  border: 2px dashed var(--chatio-primary);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(2px);
+  animation: none !important; /* Disable any inherited animations */
+  transform: none !important; /* Disable any inherited transforms */
+}
+
+.chatio-drop-overlay .text-center {
+  color: var(--chatio-primary);
+  font-weight: 500;
+  animation: none !important;
+  transform: none !important;
+}
+
+.chatio-drop-overlay i {
+  animation: none !important;
+  transform: none !important;
 }
 
 @keyframes bounce {
@@ -2906,5 +3207,146 @@ const clearAllChats = () => {
   90% {
     transform: translateY(-2px);
   }
+}
+
+/* Ensure input container allows overflow for mention popup */
+.chatio-input-main {
+  position: relative;
+  overflow: visible !important;
+}
+
+/* Mention Popup - FIXED: Use proper Chatio design system variables */
+.mention-popup-overlay {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 6px;
+  z-index: 1000;
+}
+
+.mention-popup {
+  background: var(--chatio-surface);
+  border: 1px solid var(--chatio-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(var(--chatio-bg-rgb), 0.12);
+  max-width: 400px;
+  overflow: hidden;
+}
+
+.mention-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--chatio-hover);
+  border-bottom: 1px solid var(--chatio-border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--chatio-text-secondary);
+}
+
+.mention-popup-header i {
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--chatio-primary);
+}
+
+.mention-count {
+  font-size: 11px;
+  background: var(--chatio-primary);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.mention-popup-list {
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.mention-popup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  text-align: left;
+}
+
+.mention-popup-item:hover {
+  background: var(--chatio-hover);
+}
+
+.mention-popup-item.selected {
+  background: var(--chatio-primary-light);
+}
+
+.session-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.session-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--chatio-text-primary);
+  line-height: 1.2;
+}
+
+/* FIXED: Move session ID to the right side with better styling */
+.session-id {
+  font-size: 10px;
+  color: var(--chatio-text-muted);
+  opacity: 0.8;
+  font-family: monospace;
+  padding: 2px 6px;
+  background: var(--chatio-hover);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.mention-popup-empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  color: var(--chatio-text-secondary);
+  font-size: 12px;
+  justify-content: center;
+}
+
+.mention-popup-empty i {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+/* Replay session mention highlighting - ENHANCED: Better visual indication */
+.chatio-mention {
+  background: var(--chatio-primary);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  display: inline-block;
+}
+
+.chatio-mention:hover {
+  background: var(--chatio-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(var(--chatio-primary-rgb), 0.3);
+  border-color: var(--chatio-accent);
 }
 </style> 
