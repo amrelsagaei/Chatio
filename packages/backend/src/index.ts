@@ -1,8 +1,6 @@
 import type { DefineAPI, SDK, DefineEvents } from "caido:plugin";
 
 import type { 
-  ChatMessage, 
-  ChatSettings, 
   ApiResponse, 
   ProviderResponse, 
   TestConnectionRequest, 
@@ -36,18 +34,9 @@ const debugConnection = async (sdk: SDK): Promise<{ status: string; timestamp: s
   }
 };
 
-const healthCheck = async (sdk: SDK): Promise<{ status: string }> => {
-  return { status: "healthy" };
-};
 
-const testQuickAction = async (sdk: SDK): Promise<string> => {
-  sdk.console.log(`🔥🔥🔥 TEST QUICK ACTION CALLED - Backend is working!`);
-  return JSON.stringify({
-    action: 'test',
-    message: 'Backend is working correctly!',
-    timestamp: new Date().toISOString()
-  });
-};
+
+
 
 const getCurrentProjectId = async (sdk: SDK): Promise<string | null> => {
   try {
@@ -131,10 +120,11 @@ const supportsImages = async (sdk: SDK, provider: string, model: string): Promis
         'claude-3-haiku-20240307'
       ],
       google: [
-        'gemini-1.5-pro',
+        'gemini-2.5-pro',
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
         'gemini-1.5-flash',
-        'gemini-pro-vision',
-        'gemini-1.5-pro-latest',
+        'gemini-1.5-flash-8b',
         'gemini-1.5-flash-latest'
       ],
       deepseek: [
@@ -164,7 +154,7 @@ const supportsImages = async (sdk: SDK, provider: string, model: string): Promis
       const reasons = {
         openai: 'Only GPT-4 vision models support images. Try gpt-4o or gpt-4o-mini.',
         anthropic: 'All Claude 3+ models support images.',
-        google: 'Only Gemini 1.5 models and Gemini Pro Vision support images.',
+        google: 'Gemini 2.5 and 1.5 models support images and multimodal inputs.',
         deepseek: 'DeepSeek models do not currently support image input.',
         local: 'Try vision-capable models like llava, llama3.2-vision, or bakllava.'
       };
@@ -195,7 +185,7 @@ const getProviderCapabilities = async (sdk: SDK, provider: string): Promise<{
     const imageModels = {
       openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4-vision-preview'],
       anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
-      google: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro-vision', 'gemini-1.5-pro-latest', 'gemini-1.5-flash-latest'],
+      google: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-flash-latest'],
       deepseek: [],
       local: ['llava', 'llava:7b', 'llava:13b', 'llava:34b', 'llama3.2-vision', 'llama3.2-vision:11b', 'llama3.2-vision:90b', 'bakllava', 'moondream']
     };
@@ -294,19 +284,14 @@ const sendMessage = async (sdk: SDK, request: SendMessageRequest): Promise<Provi
     
     switch (provider) {
       case 'openai':
-        sdk.console.log(`🔥 Calling sendOpenAIMessage`);
         return await sendOpenAIMessage(sdk, request);
       case 'anthropic':
-        sdk.console.log(`🔥 Calling sendAnthropicMessage`);
         return await sendAnthropicMessage(sdk, request);
       case 'google':
-        sdk.console.log(`🔥 Calling sendGoogleMessage`);
         return await sendGoogleMessage(sdk, request);
       case 'deepseek':
-        sdk.console.log(`🔥 Calling sendDeepSeekMessage`);
         return await sendDeepSeekMessage(sdk, request);
       case 'local':
-        sdk.console.log(`🔥 Calling sendLocalMessage`);
         return await sendLocalMessage(sdk, request);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
@@ -461,14 +446,14 @@ User command: ${command}`;
       settings: providerSettings
     };
 
-    sdk.console.log(`🚀 Sending request to AI provider: ${providerSettings.provider}`);
+    sdk.console.log(`Sending request to AI provider: ${providerSettings.provider}`);
     const aiResponse = await sendMessage(sdk, aiRequest);
     
     if (!aiResponse.content) {
       throw new Error('AI provider returned empty response');
     }
 
-    sdk.console.log(`🚀 AI Response: ${aiResponse.content}`);
+    sdk.console.log(`AI Response: ${aiResponse.content}`);
     
     // Parse and validate AI response
     try {
@@ -481,7 +466,7 @@ User command: ${command}`;
       
       return aiResponse.content; // Return the raw JSON from AI
     } catch (parseError) {
-      sdk.console.error('❌ Failed to parse AI response:', parseError);
+      sdk.console.error('Failed to parse AI response:', parseError);
       return JSON.stringify({
         action: 'error',
         message: 'AI returned invalid response format'
@@ -489,7 +474,7 @@ User command: ${command}`;
     }
 
   } catch (error) {
-    sdk.console.error('❌ Quick action error:', error);
+    sdk.console.error('Quick action error:', error);
     return JSON.stringify({
       action: 'error',
       message: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -502,8 +487,8 @@ User command: ${command}`;
 // Define the complete API that will be exposed to the frontend
 export type API = DefineAPI<{
   debugConnection: typeof debugConnection;
-  healthCheck: typeof healthCheck;
-  testQuickAction: typeof testQuickAction;
+
+
   getCurrentProjectId: typeof getCurrentProjectId;
   getCurrentProject: typeof getCurrentProject;
   getReplaySessions: typeof getReplaySessions;
@@ -520,8 +505,8 @@ export type API = DefineAPI<{
 // Initialize the plugin and register all API functions
 export function init(sdk: SDK<API, BackendEvents>) {
   sdk.api.register("debugConnection", debugConnection);
-  sdk.api.register("healthCheck", healthCheck);
-  sdk.api.register("testQuickAction", testQuickAction);
+
+
   sdk.api.register("getCurrentProjectId", getCurrentProjectId);
   sdk.api.register("getCurrentProject", getCurrentProject);
   sdk.api.register("getReplaySessions", getReplaySessions);

@@ -51,15 +51,14 @@ import type {
   ApiResponse 
 } from '../types';
 
-// Available Google models - Updated with latest Gemini models
+// Available Google models - Updated with latest Gemini models (January 2025)
 export const GOOGLE_MODELS = [
-  'gemini-1.5-pro',
-  'gemini-1.5-pro-latest',
+  'gemini-2.5-pro',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
   'gemini-1.5-flash',
   'gemini-1.5-flash-latest',
-  'gemini-1.5-flash-8b',
-  'gemini-pro-vision',
-  'gemini-pro'
+  'gemini-1.5-flash-8b'
 ];
 
 export const testGoogleConnection = async (sdk: SDK, request: TestConnectionRequest): Promise<ApiResponse> => {
@@ -141,14 +140,16 @@ export const sendGoogleMessage = async (sdk: SDK, request: SendMessageRequest): 
             // Convert data URL to inline data format for Gemini
             if (imageUrl.startsWith('data:')) {
               const [mimeTypeWithPrefix, base64Data] = imageUrl.split(',');
-              const mimeType = mimeTypeWithPrefix.replace('data:', '').replace(';base64', '');
-              
-              parts.push({
-                inlineData: {
-                  mimeType: mimeType,
-                  data: base64Data
-                }
-              });
+              if (mimeTypeWithPrefix && base64Data) {
+                const mimeType = mimeTypeWithPrefix.replace('data:', '').replace(';base64', '');
+                
+                parts.push({
+                  inlineData: {
+                    mimeType: mimeType,
+                    data: base64Data
+                  }
+                });
+              }
             }
           });
         }
@@ -193,10 +194,13 @@ export const sendGoogleMessage = async (sdk: SDK, request: SendMessageRequest): 
       };
     }
     
-    const modelName = model || 'gemini-1.5-pro';
+    const modelName = model || 'gemini-2.5-flash';
+    
 
     
     const url = `${baseUrl || 'https://generativelanguage.googleapis.com'}/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    
+    sdk.console.log(`🤖 [Google] Sending message to ${modelName}`);
     
     const fetchRequest = new FetchRequest(url, {
       method: 'POST',
@@ -221,7 +225,19 @@ export const sendGoogleMessage = async (sdk: SDK, request: SendMessageRequest): 
         errorData = { error: { message: errorText } };
       }
       
-      const errorMessage = errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+      let errorMessage = errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+      
+      // Handle specific Google API errors with user-friendly messages
+      if (response.status === 429) {
+        errorMessage = 'Google API rate limit exceeded. Please try again in a few moments.';
+      } else if (response.status === 503) {
+        errorMessage = 'Google Gemini service is temporarily overloaded. Please try again later.';
+      } else if (response.status === 403) {
+        errorMessage = 'Invalid API key or insufficient permissions for Google Gemini.';
+      } else if (response.status === 400 && errorMessage.includes('overloaded')) {
+        errorMessage = 'Google Gemini model is currently overloaded. Please try a different model or wait a few minutes.';
+      }
+      
       sdk.console.error(`❌ [Google] API Error: ${errorMessage}`);
       
       throw new Error(errorMessage);
@@ -236,8 +252,30 @@ export const sendGoogleMessage = async (sdk: SDK, request: SendMessageRequest): 
       throw new Error('No response candidates returned from Google Gemini');
     }
     
-    const content = data.candidates[0].content.parts[0].text;
+    const candidate = data.candidates[0];
+    const content = candidate?.content?.parts?.[0]?.text;
     const usage = data.usageMetadata;
+    
+    // Enhanced error handling for empty responses
+    if (!content || content.trim() === '') {
+      // Log the full response for debugging
+      sdk.console.error('❌ [Google] Empty response details:', JSON.stringify({
+        candidates: data.candidates,
+        finishReason: candidate?.finishReason,
+        safetyRatings: candidate?.safetyRatings
+      }));
+      
+      // Check if content was blocked by safety filters
+      if (candidate?.finishReason === 'SAFETY') {
+        throw new Error('Content was blocked by Google Gemini safety filters. Please try rephrasing your request.');
+      } else if (candidate?.finishReason === 'RECITATION') {
+        throw new Error('Content was blocked due to recitation concerns. Please try a different approach.');
+      } else if (candidate?.finishReason === 'OTHER') {
+        throw new Error('Google Gemini stopped generation for an unknown reason. Please try again.');
+      } else {
+        throw new Error('Google Gemini returned an empty response. Please try rephrasing your request or try again.');
+      }
+    }
     
 
     

@@ -969,7 +969,7 @@
         <div class="chatio-about-header">
           <div class="chatio-about-title">
             <h3>Chatio</h3>
-            <p>Version 1.0.0</p>
+            <p>Version 1.0.2</p>
           </div>
           <a
             href="https://github.com/amrelsagaei/chatio"
@@ -1006,7 +1006,7 @@
                 </div>
                 <div class="flex items-center justify-between p-2 rounded-lg bg-primary/5">
                   <span class="flex items-center"><i class="fab fa-google mr-2 text-primary"></i>Google</span>
-                  <span class="text-xs bg-primary text-white px-2 py-1 rounded-full">Gemini-1.5-pro, Gemini-1.5-flash</span>
+                  <span class="text-xs bg-primary text-white px-2 py-1 rounded-full">Gemini-2.5-pro, Gemini-2.5-flash, Gemini-1.5-flash</span>
                 </div>
                 <div class="flex items-center justify-between p-2 rounded-lg bg-primary/5">
                   <span class="flex items-center"><i class="fas fa-microchip mr-2 text-primary"></i>DeepSeek</span>

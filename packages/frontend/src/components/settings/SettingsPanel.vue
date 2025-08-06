@@ -371,9 +371,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import Button from 'primevue/button';
-import Dropdown from 'primevue/dropdown';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Textarea from 'primevue/textarea';
@@ -564,7 +563,7 @@ const testProvider = async (providerName: string) => {
           provider: 'local',
           apiKey: (provider as any).apiKey || '',
           baseUrl: (provider as any).url,
-          models: (provider as any).models || ''
+          model: (provider as any).models || ''
         };
         break;
       
@@ -670,14 +669,26 @@ const saveAllSettings = async () => {
   saving.value = true;
   
   try {
-    const allSettings = {
-      providers,
-      chatSettings,
+    // Format settings correctly for storage service
+    const formattedSettings = {
+      provider: '', // No default provider - user must configure
+      model: '',    // No default model
+      apiKey: '',
+      baseUrl: '',
+      systemPrompt: chatSettings.systemPrompt,
+      maxTokens: chatSettings.maxMessages || 20, // Use maxMessages from chatSettings
+      temperature: 0.7,
+      providers: providers,
+      chatSettings: {
+        maxMessages: chatSettings.maxMessages,
+        systemPrompt: chatSettings.systemPrompt,
+        autoSave: chatSettings.autoSave
+      },
       timestamp: new Date().toISOString()
     };
     
     // Use SDK storage instead of localStorage
-    await storageService.setSettings(allSettings);
+    await storageService.setSettings(formattedSettings);
     
     connectionStatus.value = {
       type: 'success',
@@ -687,7 +698,7 @@ const saveAllSettings = async () => {
     showToast('Settings saved successfully!', 'success');
     
     // Emit settings change event
-    emit('settingsChanged', allSettings);
+    emit('settingsChanged', formattedSettings);
     
     // Dispatch global event for status update
     window.dispatchEvent(new CustomEvent('chatio-settings-updated'));
@@ -718,9 +729,12 @@ const loadSettings = async () => {
       });
     }
     
-    // Load chat settings
+    // Load chat settings - check both locations for backward compatibility
     if (settings?.chatSettings) {
       Object.assign(chatSettings, settings.chatSettings);
+    } else if (settings?.systemPrompt) {
+      // Fallback: if systemPrompt is at root level, use it
+      chatSettings.systemPrompt = settings.systemPrompt;
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -962,6 +976,17 @@ const closeConfirmModal = () => {
 
 onMounted(() => {
   loadSettings();
+  
+  const handleProjectChange = async (event: any) => {
+    await loadSettings();
+  };
+  
+  window.addEventListener('chatio-project-changed', handleProjectChange);
+  
+  // Cleanup on unmount
+  onUnmounted(() => {
+    window.removeEventListener('chatio-project-changed', handleProjectChange);
+  });
 });
 
 // Emits

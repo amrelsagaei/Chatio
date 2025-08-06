@@ -1,4 +1,4 @@
-import type { Caido } from "@caido/sdk-frontend";
+
 
 const getSelectedText = (editor: any) => {
   if (editor) {
@@ -135,20 +135,90 @@ export const getCurrentHttpHistoryEditors = () => {
   };
 };
 
-// Get current scope
-export const getCurrentScope = () => {
-  const scope = document.querySelector(
-    ".c-scope-dropdown .p-select-label span",
-  )?.textContent;
-  return scope || "";
-};
 
-// Get current sidebar tab
+
+// Get current sidebar tab - Updated for latest Caido version
 export const getCurrentSidebarTab = () => {
-  const activeTab = document.querySelector(
+  // Try multiple selectors to ensure compatibility with different Caido versions
+  const selectors = [
+    // Current/updated Caido selectors based on latest version
+    '.bg-surface-900[role="menuitem"]', // Based on the screenshot showing bg-surface-900 class
+    '[aria-current="page"]', // ARIA current page indicator
+    '[data-is-selected="true"]', // Generic selected item
+    // More specific sidebar selectors
+    'nav [role="menuitem"].bg-surface-900', // Navigation menu item with bg-surface-900
+    '.sidebar [role="menuitem"][aria-current="page"]', // Sidebar navigation
+    // Legacy selectors for backwards compatibility
     '.c-sidebar-item[data-is-active="true"] .c-sidebar__label',
-  );
-  return activeTab ? activeTab.textContent : "";
+    '.c-sidebar-item[data-is-active="true"]',
+    // Alternative selectors
+    '.c-sidebar__item--active .c-sidebar__label',
+    '.c-sidebar__item--active'
+  ];
+  
+  for (const selector of selectors) {
+    try {
+      const activeTab = document.querySelector(selector);
+      if (activeTab && activeTab.textContent && activeTab.textContent.trim()) {
+        const tabText = activeTab.textContent.trim();
+        // Filter out empty or invalid tab names
+        if (tabText.length > 0 && !tabText.includes('undefined')) {
+          console.log(`Chatio Debug: Found tab "${tabText}" using selector: ${selector}`);
+          return tabText;
+        }
+      }
+    } catch (error) {
+      // Continue to next selector if this one fails
+      continue;
+    }
+  }
+  
+  // Enhanced fallback detection
+  try {
+    // Check URL patterns
+    const url = window.location.href;
+    if (url.includes('replay')) return 'Replay';
+    if (url.includes('history')) return 'HTTP History';  
+    if (url.includes('intercept')) return 'Intercept';
+    if (url.includes('scope')) return 'Scope';
+    
+    // Check for specific page indicators in the DOM
+    const pageIndicators = [
+      { selector: '.replay-container, [data-testid*="replay"], .c-replay', tab: 'Replay' },
+      { selector: '.history-container, [data-testid*="history"], .c-history', tab: 'HTTP History' },
+      { selector: '.intercept-container, [data-testid*="intercept"], .c-intercept', tab: 'Intercept' },
+      { selector: '.scope-container, [data-testid*="scope"], .c-scope', tab: 'Scope' }
+    ];
+    
+    for (const indicator of pageIndicators) {
+      if (document.querySelector(indicator.selector)) {
+        console.log(`Chatio Debug: Detected tab "${indicator.tab}" via DOM indicator`);
+        return indicator.tab;
+      }
+    }
+    
+    // Try to find any element with text that matches known tab names
+    const allElements = document.querySelectorAll('*');
+    const knownTabs = ['Replay', 'HTTP History', 'Intercept', 'Scope', 'Files', 'Automate'];
+    
+    for (const element of allElements) {
+      const text = element.textContent?.trim();
+      if (text && knownTabs.includes(text)) {
+        // Check if this element looks like an active tab (has certain classes or attributes)
+        if (element.classList.contains('bg-surface-900') || 
+            element.getAttribute('aria-current') === 'page' ||
+            element.getAttribute('data-is-selected') === 'true') {
+          console.log(`Chatio Debug: Found active tab "${text}" via text matching`);
+          return text;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Chatio: Failed to detect current tab:', error);
+  }
+  
+  console.warn('Chatio: Could not detect current tab');
+  return "";
 };
 
 // Get currently selected replay tab
@@ -167,23 +237,9 @@ export const getCurrentlySelectedReplayTabSessionId = () => {
   return activeTab ? activeTab.getAttribute("data-session-id") : "";
 };
 
-// Get current project name
-export const getCurrentProjectName = () => {
-  const projectNameElement = document.querySelector(
-    ".c-current-project__value",
-  );
-  return projectNameElement instanceof HTMLElement
-    ? projectNameElement.innerText
-    : "";
-};
 
-// Get current project ID
-export const getCurrentProjectID = () => {
-  const projectElement = document.querySelector(".c-current-project");
-  return projectElement instanceof HTMLElement
-    ? projectElement.getAttribute("data-project-id") || ""
-    : "";
-};
+
+
 
 // Quick action functions for manipulating requests
 export const QuickActionFunctions = {
@@ -383,64 +439,7 @@ export const QuickActionFunctions = {
   }
 };
 
-// Determine current context for quick actions
-export const getCurrentQuickActionContext = () => {
-  const sidebarTab = getCurrentSidebarTab();
-  const projectName = getCurrentProjectName();
-  const scope = getCurrentScope();
-  
-  let contextInfo = `${projectName || 'No Project'}`;
-  if (scope) {
-    contextInfo += ` • ${scope}`;
-  }
-  
-  if (sidebarTab === "Replay") {
-    const { request, response, focused, currentlySelectedReplayTab } = getCurrentReplayEditors();
-    contextInfo += ` • Replay: ${currentlySelectedReplayTab || 'Untitled'}`;
-    
-    return {
-      tab: "Replay",
-      contextInfo,
-      request,
-      response,
-      focused,
-      canModify: !!request
-    };
-  } else if (sidebarTab === "Intercept") {
-    const { request, response, focused } = getCurrentInterceptEditors();
-    contextInfo += ` • Intercept`;
-    
-    return {
-      tab: "Intercept", 
-      contextInfo,
-      request,
-      response,
-      focused,
-      canModify: !!request
-    };
-  } else if (sidebarTab === "HTTP History") {
-    const { request, response, focused } = getCurrentHttpHistoryEditors();
-    contextInfo += ` • HTTP History`;
-    
-    return {
-      tab: "HTTP History",
-      contextInfo,
-      request,
-      response,
-      focused,
-      canModify: false // Can't modify in history
-    };
-  }
-  
-  return {
-    tab: sidebarTab || "Unknown",
-    contextInfo,
-    request: undefined,
-    response: undefined,
-    focused: undefined,
-    canModify: false
-  };
-};
+
 
 // Helper function to get the active request editor
 export const getRequestEditor = () => {
@@ -464,6 +463,9 @@ export function isInEditableTab(): boolean {
   try {
     const sidebarTab = getCurrentSidebarTab();
     
+    // Debug logging to help troubleshoot
+    console.log('Chatio Debug: Current detected tab:', sidebarTab);
+    
     // List of all editable/actionable tabs where Quick Actions should be available
     const editableTabs = [
       "Replay", 
@@ -482,12 +484,29 @@ export function isInEditableTab(): boolean {
     
     // Allow Quick Actions on all editable tabs
     if (editableTabs.includes(sidebarTab)) {
+      console.log('Chatio Debug: Tab is editable, allowing QuickActions');
       return true;
     }
     
+    // Additional fallback detection for common tabs
+    if (!sidebarTab || sidebarTab === "") {
+      console.warn('Chatio Debug: No tab detected, checking DOM for common tab indicators');
+      
+      // Check if we're in common editable areas by looking for specific DOM elements
+      const replayIndicator = document.querySelector('[data-testid*="replay"], .replay-container, .c-replay');
+      const historyIndicator = document.querySelector('[data-testid*="history"], .history-container, .c-history');
+      const interceptIndicator = document.querySelector('[data-testid*="intercept"], .intercept-container, .c-intercept');
+      
+      if (replayIndicator || historyIndicator || interceptIndicator) {
+        console.log('Chatio Debug: Found editable area indicator, allowing QuickActions');
+        return true;
+      }
+    }
+    
+    console.log('Chatio Debug: Tab not recognized as editable:', sidebarTab);
     return false;
   } catch (error) {
-    console.error('Error checking editable tab:', error);
+    console.error('Chatio: Error checking editable tab:', error);
     return false;
   }
 }

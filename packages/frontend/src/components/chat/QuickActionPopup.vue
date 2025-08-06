@@ -130,9 +130,11 @@ const staticModels = {
     { model: 'claude-3-haiku-20240307', displayName: 'Claude 3 Haiku' }
   ],
   google: [
-    { model: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' },
+    { model: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro' },
+    { model: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash' },
+    { model: 'gemini-2.5-flash-lite', displayName: 'Gemini 2.5 Flash-Lite' },
     { model: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' },
-    { model: 'gemini-pro', displayName: 'Gemini Pro' }
+    { model: 'gemini-1.5-flash-8b', displayName: 'Gemini 1.5 Flash-8B' }
   ],
   deepseek: [
     { model: 'deepseek-chat', displayName: 'DeepSeek Chat' },
@@ -298,28 +300,9 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeyDown)
 })
 
-// Context summary for display
+// Context summary for display - shows Beta Version instead of current tab
 const contextSummary = computed(() => {
-  if (!props.initialContext) return 'No request found'
-  
-  const lines = props.initialContext.split('\n')
-  const firstLine = lines[0] || ''
-  
-  // Extract method and path
-  const parts = firstLine.split(' ')
-  if (parts.length >= 2) {
-    const method = parts[0]
-    const path = parts[1]
-    
-    // Truncate path if too long
-    const maxPathLength = 20
-    const truncatedPath = path.length > maxPathLength ? 
-      path.substring(0, maxPathLength) + '...' : path
-    
-    return `${method} ${truncatedPath}`
-  }
-  
-  return firstLine.length > 30 ? firstLine.substring(0, 30) + '...' : firstLine
+  return 'Beta Version'
 })
 </script>
 

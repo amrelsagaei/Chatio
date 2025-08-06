@@ -13,9 +13,8 @@ import {
   addUrlParameters,
   getCurrentSidebarTab
 } from '../utils/caidoUtils';
-import { CaidoStorageService } from './storage';
 import type { FrontendSDK } from '../types';
-import { executeAction, getAllActions, getAction, generateActionDocs } from './actions';
+import { executeAction, getAction } from './actions';
 
 interface QuickActionData {
   action: string;
@@ -442,12 +441,7 @@ async function processWithAIModel(provider: string, config: any, model: string, 
     // Ignore filter retrieval errors
   }
 
-  // Generate comprehensive action documentation
-  const availableActions = getAllActions();
-  const actionsList = availableActions.map(action => {
-    const params = action.parameters.map(p => `${p.name}: ${p.type}${p.required ? ' (required)' : ' (optional)'}`).join(', ');
-    return `- ${action.name}: ${action.description}${params ? ` | Parameters: ${params}` : ''}`;
-  }).join('\n');
+
 
   const systemPrompt = `You are Chatio, an expert security testing assistant for HTTP requests and Caido operations.
 Analyze the user's natural language command and return ONLY a single JSON response with the appropriate action.
@@ -809,7 +803,21 @@ function showQuickActionPopup(sdk: FrontendSDK): void {
 
   const editable = isInEditableTab();
   if (!editable) {
-    showToast('error', 'Quick Action is available in Replay, Intercept, HTTP History, Scope, Files, and other editable tabs');
+    const currentTab = getCurrentSidebarTab();
+    const debugInfo = currentTab ? ` (Current tab: "${currentTab}")` : ' (No tab detected)';
+    showToast('error', `Quick Action is available in Replay, Intercept, HTTP History, Scope, Files, and other editable tabs${debugInfo}`);
+    
+    // Additional debug information in console
+    console.log('Chatio QuickActions Debug:', {
+      currentTab,
+      url: window.location.href,
+      availableElements: {
+        sidebar: !!document.querySelector('[role="menuitem"]'),
+        replay: !!document.querySelector('[data-testid*="replay"]'),
+        history: !!document.querySelector('[data-testid*="history"]'),
+        intercept: !!document.querySelector('[data-testid*="intercept"]')
+      }
+    });
     return;
   }
 
@@ -897,9 +905,69 @@ function setupQuickActionShortcut(sdk: FrontendSDK): (() => void) {
   };
 }
 
+/**
+ * Debug function to help troubleshoot QuickActions tab detection
+ * Can be called from browser console: window.chatioDebugTabDetection()
+ */
+function debugTabDetection() {
+  console.log('=== Chatio QuickActions Debug ===');
+  
+  const currentTab = getCurrentSidebarTab();
+  const isEditable = isInEditableTab();
+  
+  console.log('Current tab detected:', currentTab);
+  console.log('Is tab editable:', isEditable);
+  console.log('Current URL:', window.location.href);
+  
+  // Test all selectors
+  const selectors = [
+    '.bg-surface-900[role="menuitem"]',
+    '[aria-current="page"]', 
+    '[data-is-selected="true"]',
+    'nav [role="menuitem"].bg-surface-900',
+    '.sidebar [role="menuitem"][aria-current="page"]',
+    '.c-sidebar-item[data-is-active="true"] .c-sidebar__label',
+    '.c-sidebar-item[data-is-active="true"]'
+  ];
+  
+  console.log('Testing selectors:');
+  selectors.forEach(selector => {
+    const element = document.querySelector(selector);
+    console.log(`  ${selector}:`, element ? element.textContent?.trim() : 'Not found');
+  });
+  
+  // Check for page indicators
+  const indicators = [
+    '.replay-container, [data-testid*="replay"], .c-replay',
+    '.history-container, [data-testid*="history"], .c-history', 
+    '.intercept-container, [data-testid*="intercept"], .c-intercept',
+    '.scope-container, [data-testid*="scope"], .c-scope'
+  ];
+  
+  console.log('Testing page indicators:');
+  indicators.forEach(selector => {
+    const found = !!document.querySelector(selector);
+    console.log(`  ${selector}:`, found ? 'Found' : 'Not found');
+  });
+  
+  console.log('=== End Debug ===');
+  
+  return {
+    currentTab,
+    isEditable,
+    url: window.location.href
+  };
+}
+
+// Make debug function available globally
+if (typeof window !== 'undefined') {
+  (window as any).chatioDebugTabDetection = debugTabDetection;
+}
+
 export {
   setupQuickActionShortcut,
   showQuickActionPopup,
   closeQuickActionPopup,
-  executeQuickAction
+  executeQuickAction,
+  debugTabDetection
 }; 

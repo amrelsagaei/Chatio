@@ -100,11 +100,11 @@
           <div class="chatio-chat-title">{{ getCurrentChatTitle() }}</div>
           <div class="chatio-chat-actions">
             <!-- Auto-save status indicator -->
-            <div class="chatio-autosave-status" :class="{ 'warning': !isAutoSaveEnabled() }" :title="isAutoSaveEnabled() ? 'Auto-save: Enabled' : 'Auto-save: Disabled - Chat history will not be automatically saved'">
-              <i v-if="isAutoSaveEnabled()" class="fas fa-save" style="color: #10b981;"></i>
-              <i v-else class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
-              <span class="text-xs ml-1">{{ isAutoSaveEnabled() ? 'Auto-save is enabled' : 'Auto-save disabled' }}</span>
-            </div>
+                    <div class="chatio-autosave-status" :class="{ 'warning': !autoSaveEnabled }" :title="autoSaveEnabled ? 'Auto-save: Enabled' : 'Auto-save: Disabled - Chat history will not be automatically saved'">
+          <i v-if="autoSaveEnabled" class="fas fa-save" style="color: #10b981;"></i>
+          <i v-else class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
+          <span class="text-xs ml-1">{{ autoSaveEnabled ? 'Auto-save is enabled' : 'Auto-save disabled' }}</span>
+        </div>
             
             <button class="chatio-chat-btn" @click="toggleHistory" :title="showHistory ? 'Hide History' : 'Show History'">
               <i :class="showHistory ? 'fas fa-times' : 'fas fa-history'"></i>
@@ -755,6 +755,7 @@ const isTyping = ref(false);
 const currentStatus = ref('Ready'); // Add status tracking
 const isProjectChanging = ref(false); // Track project change state
 const loadingChatId = ref<string | null>(null); // Track which chat is loading
+const autoSaveEnabled = ref(true); // Reactive autosave status
 const messagesContainer = ref<HTMLElement>();
 const messageInput = ref<HTMLTextAreaElement>();
 const editInput = ref<HTMLInputElement>();
@@ -849,9 +850,11 @@ const availableModels = {
     { model: 'claude-3-haiku-20240307', displayName: 'Claude 3 Haiku' }
   ],
   google: [
-    { model: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' },
+    { model: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro' },
+    { model: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash' },
+    { model: 'gemini-2.5-flash-lite', displayName: 'Gemini 2.5 Flash-Lite' },
     { model: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' },
-    { model: 'gemini-pro', displayName: 'Gemini Pro' }
+    { model: 'gemini-1.5-flash-8b', displayName: 'Gemini 1.5 Flash-8B' }
   ],
   deepseek: [
     { model: 'deepseek-chat', displayName: 'DeepSeek Chat' },
@@ -933,26 +936,16 @@ const loadAppState = async () => {
   try {
     const state = await storageService.getAppState();
     if (state) {
-      // Only load if it's recent (within last hour)
-      const isRecent = state.lastUpdated && (Date.now() - state.lastUpdated < 3600000);
+      showHistory.value = state.showHistory !== undefined ? state.showHistory : true;
+      currentChatId.value = state.currentChatId || 'default';
+      currentMessage.value = state.currentMessage || '';
       
-      if (isRecent) {
-        showHistory.value = state.showHistory || true;
-        currentChatId.value = state.currentChatId || 'default';
-        currentMessage.value = state.currentMessage || '';
-        
-        if (state.currentMessages && state.currentMessages.length > 0) {
-          // Ensure proper date parsing for messages
-          const parsedMessages = state.currentMessages.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }));
-          currentMessages.splice(0, currentMessages.length, ...parsedMessages);
-        }
-        
-    
-      } else {
-    
+      if (state.currentMessages && state.currentMessages.length > 0) {
+        const parsedMessages = state.currentMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        currentMessages.splice(0, currentMessages.length, ...parsedMessages);
       }
     }
   } catch (error) {
@@ -993,6 +986,12 @@ const forceStateSync = async () => {
 
 // Methods
 const sendMessage = async () => {
+  // Prevent sending messages during project changes
+  if (isProjectChanging.value) {
+    showToast('Please wait for project change to complete', 'warning');
+    return;
+  }
+
   const trimmedMessage = currentMessage.value.trim();
   if (!trimmedMessage && attachedFiles.length === 0) return;
 
@@ -1424,22 +1423,16 @@ const cancelEdit = () => {
 };
 
 const saveChatSession = async () => {
-  if (currentMessages.length === 0) return; // Don't save empty chats
+  if (currentMessages.length === 0) return;
   
-  // Check if auto-save is enabled in settings
   try {
     const settings = await storageService.getSettings();
     if (settings) {
-      const autoSaveEnabled = settings.chatSettings?.autoSave ?? true; // Default to true for backward compatibility
-      
-      if (!autoSaveEnabled) {
-    
-        return; // Don't save if auto-save is disabled
-      }
+      const autoSaveEnabled = settings.chatSettings?.autoSave ?? true;
+      if (!autoSaveEnabled) return;
     }
   } catch (error) {
     console.error('Failed to check auto-save setting:', error);
-    // If we can't read settings, default to saving (fail-safe)
   }
   
   const existingChatIndex = chatHistory.findIndex(c => c.id === currentChatId.value);
@@ -1460,25 +1453,18 @@ const saveChatSession = async () => {
     chatHistory.unshift(chatSession);
   }
 
-  // Save using SDK storage
   await storageService.setChatHistory(chatHistory);
-  
 };
 
 const loadChatHistory = async () => {
   try {
-
-    
-    // Clear existing history first
-    chatHistory.splice(0);
-    
-    // Force UI update
-    await nextTick();
-    
     const sessions = await storageService.getChatHistory();
 
     
     if (sessions && sessions.length > 0) {
+      // Only clear existing history if we successfully loaded new data
+      chatHistory.splice(0);
+      
       // Ensure proper date parsing
       const parsedSessions = sessions.map((session: any) => ({
         ...session,
@@ -1493,17 +1479,17 @@ const loadChatHistory = async () => {
       for (const session of parsedSessions) {
         chatHistory.push(session);
       }
-      
-
     } else {
-
+      if (sessions !== null) {
+        chatHistory.splice(0);
+      }
     }
     
     // Force final UI update
     await nextTick();
     
   } catch (error) {
-    console.error('❌ [Chat] Failed to load chat history:', error);
+    console.error('[Chat] Failed to load chat history:', error);
   }
 };
 
@@ -1699,6 +1685,7 @@ onUnmounted(() => {
 // Lifecycle
 onMounted(async () => {
   await loadChatHistory();
+  await updateAutoSaveStatus(); // Load initial autosave status
   await loadAppState();
   await refreshProviderModels();
   
@@ -1721,17 +1708,20 @@ onMounted(async () => {
     console.error('Failed to load selected module:', error);
   }
   
-  // ENHANCED: Listen for project changes to refresh ALL chat data
   window.addEventListener('chatio-project-changed', async (event: any) => {
     const { projectId } = event.detail;
-
     
-    // START PROJECT CHANGE: Set loading state immediately
     isProjectChanging.value = true;
     
-    // IMMEDIATE: Clear UI data first for instant feedback
+    // Save current state before switching (if autosave is enabled)
+    try {
+      await forceStateSync();
+    } catch (error) {
+      console.warn('Failed to save state before project switch:', error);
+    }
+    
+    // Clear current chat UI (but don't clear history until we load new data)
     currentMessages.splice(0);
-    chatHistory.splice(0);
     currentChatId.value = 'default';
     currentMessage.value = '';
     attachedFiles.splice(0);
@@ -1748,12 +1738,11 @@ onMounted(async () => {
     // SEQUENTIAL LOADING: Load data step by step with immediate UI updates
     try {
       // Step 1: Load chat history with immediate UI update
-
       await loadChatHistory();
       await nextTick(); // Force UI update
       
-      // Step 2: Load app state
-
+      // Step 2: Load app state and autosave status
+      await updateAutoSaveStatus();
       await loadAppState();
       await nextTick(); // Force UI update
       
@@ -1762,13 +1751,10 @@ onMounted(async () => {
       await loadReplaySessions();
       await nextTick(); // Force UI update
       
-      // Step 4: Update parent immediately
       emit('messageCountChanged', chatHistory.length);
       
-
-      
     } catch (error) {
-      console.error('❌ [Chat] Error during project change:', error);
+      console.error('[Chat] Error during project change:', error);
     } finally {
       // ALWAYS clear loading state
       isProjectChanging.value = false;
@@ -1776,8 +1762,11 @@ onMounted(async () => {
     }
   });
   
-  // Listen for settings updates to refresh available models
+  // Listen for settings updates to refresh available models and autosave status
   const handleSettingsUpdate = async () => {
+    // Update autosave status first
+    await updateAutoSaveStatus();
+    
     // Check if current selected model is still valid
     if (selectedProvider.value) {
       const currentModels = await getProviderModels(selectedProvider.value);
@@ -2043,8 +2032,17 @@ const emit = defineEmits<{
   switchTab: [tab: string];
 }>();
 
-watch(() => currentMessages.length, (count) => {
+// Watch for chat history changes and emit the total number of saved chats
+watch(() => chatHistory.length, (count) => {
   emit('messageCountChanged', count);
+});
+
+// Also emit when current messages change (for real-time updates during conversation)
+watch(() => currentMessages.length, () => {
+  // Only emit if we have actual saved chats, not just current messages
+  if (chatHistory.length > 0) {
+    emit('messageCountChanged', chatHistory.length);
+  }
 });
 
 // New methods
@@ -2350,11 +2348,14 @@ const insertCodeBlock = () => {
 };
 
 const refreshChatHistory = async () => {
-  
   isProjectChanging.value = true;
+  
   try {
     await loadChatHistory();
     showToast('Chat history refreshed', 'success');
+  } catch (error) {
+    console.error('[Chat] Failed to refresh chat history:', error);
+    showToast('Failed to refresh chat history', 'error');
   } finally {
     isProjectChanging.value = false;
   }
@@ -2906,17 +2907,23 @@ const manualSaveChatSession = async () => {
   
 };
 
-// Function to check if auto-save is currently enabled
-const isAutoSaveEnabled = async (): Promise<boolean> => {
+const updateAutoSaveStatus = async (): Promise<void> => {
   try {
     const settings = await storageService.getSettings();
     if (settings) {
-      return settings.chatSettings?.autoSave ?? true;
+      autoSaveEnabled.value = settings.chatSettings?.autoSave ?? true;
+    } else {
+      autoSaveEnabled.value = true;
     }
   } catch (error) {
     console.error('Failed to check auto-save setting:', error);
+    autoSaveEnabled.value = true;
   }
-  return true; // Default to enabled
+};
+
+// Legacy function for backward compatibility (now synchronous)
+const isAutoSaveEnabled = (): boolean => {
+  return autoSaveEnabled.value;
 };
 
 const clearAllChats = () => {

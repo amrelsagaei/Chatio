@@ -8,6 +8,12 @@ export interface ChatSettings {
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
+  providers?: any;
+  chatSettings?: {
+    maxMessages: number;
+    systemPrompt: string;
+    autoSave: boolean;
+  };
 }
 
 export interface ChatMessage {
@@ -42,6 +48,11 @@ export interface GlobalStorageData {
     systemPrompt?: string;
     maxTokens?: number;
     temperature?: number;
+    chatSettings?: {
+      maxMessages: number;
+      systemPrompt: string;
+      autoSave: boolean;
+    };
   };
   projects?: Record<string, ProjectStorageData>;
 }
@@ -134,16 +145,23 @@ export class CaidoStorageService {
     if (!globalSettings) return null;
     
     // Convert global settings to ChatSettings format
-    return {
-      provider: 'openai', // Default provider
-      model: 'gpt-4o',    // Default model
+    const settings = {
+      provider: '', // No default provider
+      model: '',    // No default model
       apiKey: '',
       baseUrl: '',
       systemPrompt: globalSettings.systemPrompt || '',
       maxTokens: globalSettings.maxTokens || 2048,
       temperature: globalSettings.temperature || 0.7,
-      providers: globalSettings.providers || {}
+      providers: globalSettings.providers || {},
+      chatSettings: globalSettings.chatSettings || {
+        maxMessages: 20,
+        systemPrompt: globalSettings.systemPrompt || '',
+        autoSave: true
+      }
     } as ChatSettings;
+    
+    return settings;
   }
 
   async setSettings(settings: ChatSettings): Promise<void> {
@@ -158,14 +176,28 @@ export class CaidoStorageService {
     this.cache.globalSettings.maxTokens = settings.maxTokens;
     this.cache.globalSettings.temperature = settings.temperature;
     
+    // Store chat settings if provided (for backward compatibility and additional fields)
+    if (settings.chatSettings) {
+      this.cache.globalSettings.chatSettings = settings.chatSettings;
+      // Ensure systemPrompt is also copied from chatSettings if present
+      if (settings.chatSettings.systemPrompt) {
+        this.cache.globalSettings.systemPrompt = settings.chatSettings.systemPrompt;
+      }
+    }
+    
     await this.saveToStorage();
   }
 
   // PROJECT-SPECIFIC DATA (chat history, app state, selected module)
-  async getChatHistory(): Promise<ChatMessage[]> {
-    await this.waitForInitialization();
-    const projectData = this.getProjectData();
-    return projectData.chatHistory || [];
+  async getChatHistory(): Promise<ChatMessage[] | null> {
+    try {
+      await this.waitForInitialization();
+      const projectData = this.getProjectData();
+      return projectData.chatHistory || [];
+    } catch (error) {
+      console.error('[Storage] Failed to load chat history:', error);
+      return null;
+    }
   }
 
   async setChatHistory(history: ChatMessage[]): Promise<void> {
@@ -262,7 +294,7 @@ export class CaidoStorageService {
     try {
       await this.sdk.storage.set(this.cache);
     } catch (error) {
-      console.error('❌ [Storage] Failed to save to Caido storage:', error);
+      console.error('[Storage] Failed to save to Caido storage:', error);
       throw error;
     }
   }
@@ -277,4 +309,4 @@ export class CaidoStorageService {
   }
 }
 
-// Note: Global storage instance removed as it's not used. Components create their own instances. 
+ 
