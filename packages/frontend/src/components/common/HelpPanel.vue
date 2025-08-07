@@ -969,7 +969,7 @@
         <div class="chatio-about-header">
           <div class="chatio-about-title">
             <h3>Chatio</h3>
-            <p>Version 1.0.2</p>
+            <p>Version 1.0.3</p>
           </div>
           <a
             href="https://github.com/amrelsagaei/chatio"
