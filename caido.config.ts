@@ -13,7 +13,7 @@ export default defineConfig({
   id,
   name: "Chatio",
   description: "An AI-powered assistant for hackers and security professionals built for Caido",
-  version: "1.0.2",
+  version: "1.0.3",
   author: {
     name: "Amr Elsagaei",
     email: "info@amralsagaei.com",
