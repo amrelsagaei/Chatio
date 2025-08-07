@@ -8,7 +8,7 @@ import { resolve } from "path";
 import prefixwrap from "postcss-prefixwrap";
 import { fileURLToPath, URL } from 'node:url';
 
-const id = "chatview";
+const id = "chatio";
 export default defineConfig({
   id,
   name: "Chatio",

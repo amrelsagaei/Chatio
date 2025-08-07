@@ -27,7 +27,7 @@ export const init = (sdk: FrontendSDK) => {
     width: '100%',
   })
 
-  root.id = `plugin--chatview`
+  root.id = `plugin--chatio`
   root.className = `chatio-app`
 
   app.mount(root)
